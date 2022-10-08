@@ -1,0 +1,137 @@
+---
+title: UNSW Slides Template
+subtitle: Made using Quarto and reveal.js
+author: Dr Patrick Laub
+date: today
+format:
+  revealjs:
+    theme: [serif, custom.scss]
+    controls: true
+    controls-tutorial: true
+    logo: unsw-logo.svg
+    title-slide-attributes:
+      data-background-image: unsw-yellow-shape.png
+      data-background-size: contain !important
+    slide-number: c/t
+    strip-comments: true
+    margin: 0.2
+    chalkboard:
+      boardmarker-width: 5
+      grid: false
+    include-before: <div class="line right"></div>
+highlight-style: breeze
+execute:
+  echo: true
+---
+
+## Quarto
+
+[Quarto](https://quarto.org) is a successor to the popular RMarkdown project.
+They are both built by the [RStudio/Posit](https://www.rstudio.com) team, and RStudio is a tool to use to write Quarto documents.
+Quarto is not less attached to the R language than RMarkdown.
+
+Documents in the Quarto format are written in markdown.
+So the normal features, like _italics_, __bold__, ~~strikethrough~~ and so on are easy to add.
+
+Like RMarkdown, Quarto can output a variety of different kinds of documents.
+It can create reports, or PowerPoint slides, or HTML websites.
+For these slides, Quarto is generating a HTML set of slides built on [reveal.js](http://revealjs.com).
+
+## The reveal.js grid
+
+There are a lot of great features of reveal.js slides.
+One relatively minor feature, is the ability to create 2-dimensional grid of slides.
+
+I use each column to represent a new topic, and start each column with a visually distinct slide (which is usually quite empty) to announce the new topic.
+
+::: {.callout-note}
+To move through the slides in order, press the spacebar.
+To see the overall structure of the talk, press O.
+:::
+
+# Quarto basics {background-image="unsw-yellow-shape.png"}
+
+## Columns
+
+::: columns
+::: column
+
+It is easy to split the slide into columns.
+
+Quarto has a built-in system for footnotes and reference lists.
+
+Instead, I simply show the source of any quotes/figures I use in the footer of the slide they appear.
+:::
+::: column
+
+![The radian and its relation to the circle](https://upload.wikimedia.org/wikipedia/commons/4/4e/Circle_radians.gif)
+
+:::
+:::
+
+::: footer
+Source: [Wikipedia](https://en.wikipedia.org/wiki/Radian#mediaviewer/File:Circle_radians.gif)
+:::
+
+## Unequal-sized columns
+
+::: columns
+::: {.column width="60%"}
+
+If my picture is too tall, I normally just increase the width of the other column rather than adjust the size of the image directly.
+This column is 60% wide.
+
+__Fermat's last theorem:__
+
+$$
+x^n + y^n = z^n
+$$
+
+for $x,y,z \in \mathbf{N}$ is not possible for $n > 2$.
+
+:::
+::: {.column width="40%"}
+
+![A male northern Cardina](https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Male_northern_cardinal_in_Central_Park_%2852612%29.jpg/780px-Male_northern_cardinal_in_Central_Park_%2852612%29.jpg)
+
+:::
+:::
+
+::: footer
+Source: [Wikipedia](https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Male_northern_cardinal_in_Central_Park_%2852612%29.jpg/780px-Male_northern_cardinal_in_Central_Park_%2852612%29.jpg)
+:::
+
+# Code and outputs {background-image="unsw-yellow-shape.png"}
+
+## Code
+
+It is quite easy to show code and their results.
+
+Here is some R code:
+
+```{r}
+data(iris)
+head(iris)
+```
+
+Here is some Python code:
+
+```{python}
+[x**2 for x in range(10) if x%2 == 0]
+```
+
+## Code II 
+
+You can easily hide the code and just show the output:
+```{python}
+#| echo: false
+#| fig-align: center
+import matplotlib.pyplot as plt
+import seaborn as sns
+penguins = sns.load_dataset("penguins")
+sns.jointplot(data=penguins, x="flipper_length_mm", y="bill_length_mm", hue="species");
+plt.show()
+```
+
+
+
