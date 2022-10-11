@@ -1,0 +1,19 @@
+---
+title: "Template for UNSW-themed Quarto slides"
+author: Dr Patrick Laub
+format:
+  html:
+    theme: materia
+---
+
+This is a template for using [Quarto](http://quarto.org) to create [reveal.js](http://revealjs.com) HTML slides according to a UNSW theme.
+You can download the template as [a zip file](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/archive/refs/heads/main.zip) or you can clone the [Github repository](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template).
+
+I recommend using [RStudio](http://rstudio.com) to render the main [template.qmd](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/blob/main/template.qmd) file.
+Or, if you prefer the commandline, run `quarto render template.qmd`.
+In either case, you'll need to have Quarto installed first.
+This is [the generated slides](https://pat-laub.github.io/UNSW-Quarto-Slides-Template/template.html#/title-slide).
+
+::: {.callout-note}
+Reveal.js slides can be progressed by pressing the spacebar key, or by clicking on the arrows at the edge of the slide.
+:::
