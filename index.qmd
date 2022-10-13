@@ -8,6 +8,7 @@ format:
 
 This is a template for using [Quarto](http://quarto.org) to create [reveal.js](http://revealjs.com) HTML slides according to a UNSW theme.
 You can download the template as [a zip file](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/releases/download/v1.0.0/UNSW-Quarto-Slides-Template.zip) or you can clone the [Github repository](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template).
+I used these tools to make the [lecture slides for ACTL3143 & ACTL5111](http://pat-laub.github.io/DeepLearningForActuaries/), a deep learning course for actuaries.
 
 I recommend using [RStudio](http://rstudio.com) to render the main [template.qmd](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/blob/main/template.qmd) file.
 Or, if you prefer the commandline, run `quarto render template.qmd`.
