@@ -17,3 +17,9 @@ This is [the generated slides](https://pat-laub.github.io/UNSW-Quarto-Slides-Tem
 ::: {.callout-note}
 Reveal.js slides can be progressed by pressing the spacebar key, or by clicking on the arrows at the edge of the slide.
 :::
+
+::: {.callout-warning}
+Exporting the resulting HTML slides to PDF is possible but a little clunky.
+The solution I found was to install [decktape](https://github.com/astefanutti/decktape) and call `decktape --size=1600x900 template.html template.pdf`.
+The [resulting PDF file](template.pdf) is acceptable, though obviously all interactivity is discarded.
+:::
