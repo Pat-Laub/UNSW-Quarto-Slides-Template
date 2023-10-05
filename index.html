@@ -69,8 +69,9 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>This is a template for using <a href="http://quarto.org">Quarto</a> to create <a href="http://revealjs.com">reveal.js</a> HTML slides according to a UNSW theme. You can download the template as <a href="https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/releases/download/v1.1.0/UNSW-Quarto-Slides-Template.zip">a zip file</a> or you can clone the <a href="https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template">Github repository</a>. I used these tools to make the <a href="http://pat-laub.github.io/DeepLearningForActuaries/">lecture slides for ACTL3143 &amp; ACTL5111</a>, a deep learning course for actuaries.</p>
-<p>I recommend using <a href="http://rstudio.com">RStudio</a> to render the main <a href="https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/blob/main/template.qmd">template.qmd</a> file. Or, if you prefer the commandline, run <code>quarto render template.qmd</code>. In either case, you’ll need to have Quarto installed first. This is <a href="https://pat-laub.github.io/UNSW-Quarto-Slides-Template/template.html#/title-slide">the generated slides</a>.</p>
+<p>This is a template for using <a href="http://quarto.org">Quarto</a> to create <a href="http://revealjs.com">reveal.js</a> HTML slides according to a UNSW theme. Here are the generated slides in <a href="template.html">HTML format</a> and in <a href="template.pdf">PDF format</a>.</p>
+<p>You can download the template as <a href="https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/releases/download/v1.1.0/UNSW-Quarto-Slides-Template.zip">a zip file</a> or you can clone the <a href="https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template">Github repository</a>. I used these tools to make the <a href="http://pat-laub.github.io/DeepLearningForActuaries/">lecture slides for ACTL3143 &amp; ACTL5111</a>, a deep learning course for actuaries.</p>
+<p>I recommend using <a href="http://rstudio.com">RStudio</a> to render the main <a href="https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/blob/main/template.qmd">template.qmd</a> file. Or, if you prefer the commandline, run <code>quarto render template.qmd</code>. In either case, you’ll need to have Quarto installed first.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -94,7 +95,7 @@ Warning
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Exporting the resulting HTML slides to PDF is possible but a little clunky. The solution I found was to install <a href="https://github.com/astefanutti/decktape">decktape</a> and call <code>decktape template.html template.pdf</code>. The <a href="template.pdf">resulting PDF file</a> is acceptable, though obviously all interactivity is discarded.</p>
+<p>Quarto creates HTML slides, and converting these to PDF is slightly clunky. I use the <a href="https://github.com/astefanutti/decktape">decktape</a> tool, calling <code>decktape template.html template.pdf</code>, to create <a href="template.pdf">PDF slides</a>. This normally works well, though all interactivity in the HTML will be discarded.</p>
 </div>
 </div>
 

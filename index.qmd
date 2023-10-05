@@ -7,20 +7,21 @@ format:
 ---
 
 This is a template for using [Quarto](http://quarto.org) to create [reveal.js](http://revealjs.com) HTML slides according to a UNSW theme.
+Here are the generated slides in [HTML format](template.html) and in [PDF format](template.pdf). 
+
 You can download the template as [a zip file](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/releases/download/v1.1.0/UNSW-Quarto-Slides-Template.zip) or you can clone the [Github repository](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template).
 I used these tools to make the [lecture slides for ACTL3143 & ACTL5111](http://pat-laub.github.io/DeepLearningForActuaries/), a deep learning course for actuaries.
 
 I recommend using [RStudio](http://rstudio.com) to render the main [template.qmd](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/blob/main/template.qmd) file.
 Or, if you prefer the commandline, run `quarto render template.qmd`.
 In either case, you'll need to have Quarto installed first.
-This is [the generated slides](https://pat-laub.github.io/UNSW-Quarto-Slides-Template/template.html#/title-slide).
 
 ::: {.callout-note}
 Reveal.js slides can be progressed by pressing the spacebar key, or by clicking on the arrows at the edge of the slide.
 :::
 
 ::: {.callout-warning}
-Exporting the resulting HTML slides to PDF is possible but a little clunky.
-The solution I found was to install [decktape](https://github.com/astefanutti/decktape) and call `decktape template.html template.pdf`.
-The [resulting PDF file](template.pdf) is acceptable, though obviously all interactivity is discarded.
+Quarto creates HTML slides, and converting these to PDF is slightly clunky.
+I use the [decktape](https://github.com/astefanutti/decktape) tool, calling `decktape template.html template.pdf`, to create [PDF slides](template.pdf).
+This normally works well, though all interactivity in the HTML will be discarded.
 :::
