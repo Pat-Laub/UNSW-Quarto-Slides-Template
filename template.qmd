@@ -7,19 +7,10 @@ format:
   revealjs:
     theme: [serif, custom.scss]
     controls: true
-    controls-tutorial: true
-    logo: unsw-logo.svg
-    title-slide-attributes:
-      data-background-image: unsw-yellow-shape.png
-      data-background-size: contain !important
+    logo: unsw-logo.png
     slide-number: c/t
+    history: false
     strip-comments: true
-    margin: 0.2
-    chalkboard:
-      boardmarker-width: 5
-      grid: false
-    include-before: <div class="line right"></div>
-highlight-style: breeze
 execute:
   echo: true
 ---
@@ -49,7 +40,7 @@ To move through the slides in order, press the spacebar.
 To see the overall structure of the talk, press O.
 :::
 
-# Quarto basics {background-image="unsw-yellow-shape.png"}
+# Quarto basics
 
 ## Columns
 
@@ -59,8 +50,7 @@ To see the overall structure of the talk, press O.
 It is easy to split the slide into columns.
 
 Quarto has a built-in system for footnotes and reference lists.
-
-Instead, I simply show the source of any quotes/figures I use in the footer of the slide they appear.
+I normally place the source of any quotes or figures in the footer of the slide they appear.
 :::
 ::: column
 
@@ -101,28 +91,26 @@ for $x,y,z \in \mathbf{N}$ is not possible for $n > 2$.
 Source: [Wikipedia](https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Male_northern_cardinal_in_Central_Park_%2852612%29.jpg/780px-Male_northern_cardinal_in_Central_Park_%2852612%29.jpg)
 :::
 
-# Code and outputs {background-image="unsw-yellow-shape.png"}
+# Code and outputs
 
 ## Code
 
+::: columns
+
+::: {.column width="40%"}
+
 It is quite easy to show code and their results.
-
-Here is some R code:
-
-```{r}
-data(iris)
-head(iris)
-```
-
-Here is some Python code:
+E.g. here is some Python code:
 
 ```{python}
-[x**2 for x in range(10) if x%2 == 0]
+[x**2 for x in range(5)]
 ```
 
-## Code II 
+Also you can hide the code and just show the generated output/figure.
 
-You can easily hide the code and just show the output:
+:::
+::: {.column width="60%"}
+
 ```{python}
 #| echo: false
 #| fig-align: center
@@ -130,8 +118,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 penguins = sns.load_dataset("penguins")
 sns.jointplot(data=penguins, x="flipper_length_mm", y="bill_length_mm", hue="species");
-plt.show()
 ```
 
-
+:::
+:::
 
