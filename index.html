@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.398">
+<meta name="generator" content="quarto-1.4.549">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -72,6 +72,8 @@ ul.task-list li input[type="checkbox"] {
 <p>This is a template for using <a href="http://quarto.org">Quarto</a> to create <a href="http://revealjs.com">reveal.js</a> HTML slides according to a UNSW theme. Here are the generated slides in <a href="template.html">HTML format</a> and in <a href="template.pdf">PDF format</a>.</p>
 <p>You can download the template as <a href="https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/releases/download/v1.1.0/UNSW-Quarto-Slides-Template.zip">a zip file</a> or you can clone the <a href="https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template">Github repository</a>. I used these tools to make the <a href="http://pat-laub.github.io/DeepLearningForActuaries/">lecture slides for ACTL3143 &amp; ACTL5111</a>, a deep learning course for actuaries.</p>
 <p>I recommend using <a href="http://rstudio.com">RStudio</a> to render the main <a href="https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/blob/main/template.qmd">template.qmd</a> file. Or, if you prefer the commandline, run <code>quarto render template.qmd</code>. In either case, you’ll need to have Quarto installed first.</p>
+<p>For a detailed setup/explainer of how I use Quarto for lecture materials, check out the following screen I made:</p>
+<div class="quarto-video ratio ratio-16x9"><iframe data-external="1" src="https://www.youtube.com/embed/41yTFhQBXaE" title="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe></div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -229,38 +231,28 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       }
     }
     stripColumnClz(note)
-    const typesetMath = (el) => {
-      if (window.MathJax) {
-        // MathJax Typeset
-        window.MathJax.typeset([el]);
-      } else if (window.katex) {
-        // KaTeX Render
-        var mathElements = el.getElementsByClassName("math");
-        var macros = [];
-        for (var i = 0; i < mathElements.length; i++) {
-          var texText = mathElements[i].firstChild;
-          if (mathElements[i].tagName == "SPAN") {
-            window.katex.render(texText.data, mathElements[i], {
-              displayMode: mathElements[i].classList.contains('display'),
-              throwOnError: false,
-              macros: macros,
-              fleqn: false
-            });
-          }
-        }
-      }
-    }
     if (id === null || id.startsWith('sec-')) {
       // Special case sections, only their first couple elements
       const container = document.createElement("div");
       if (note.children && note.children.length > 2) {
-        for (let i = 0; i < 2; i++) {
-          container.appendChild(note.children[i].cloneNode(true));
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
         }
-        typesetMath(container);
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
         return container.innerHTML
       } else {
-        typesetMath(note);
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
         return note.innerHTML;
       }
     } else {
@@ -269,8 +261,15 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (anchorLink) {
         anchorLink.remove();
       }
-      typesetMath(note);
-      return note.innerHTML;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
     }
   }
   for (var i=0; i<xrefs.length; i++) {
