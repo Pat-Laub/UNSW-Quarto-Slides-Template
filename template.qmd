@@ -10,6 +10,15 @@ format:
     controls-tutorial: true
     logo: unsw-logo.png
     slide-number: c/t
+    chalkboard:
+      # Redraw saved ink instantly when arriving at a slide (must be > 0;
+      # the plugin treats 0 as "unset" and falls back to its 800ms default).
+      transition: 1
+      boardmarker-width: 4
+      grid: false
+      background:
+        # Fully transparent notes canvas, so drawing on a slide doesn't dim it.
+        - "rgba(255,255,255,0.0)"
     history: false
     strip-comments: true
     html-math-method: katex

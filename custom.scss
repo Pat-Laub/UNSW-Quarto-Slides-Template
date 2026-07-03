@@ -110,6 +110,21 @@ $unsw-polygon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vie
   right: 7px !important;
 }
 
+// Keep the chalkboard/notes-canvas corner buttons out of PDF exports (they are
+// presentation controls, not content) without needing a post-render step:
+// `.print-pdf` covers the ?view=print browser route, and `@media print` covers
+// decktape, whose printToPDF capture applies print stylesheets. Also hide them
+// in overview mode, like the logo, so they don't float over the slide grid.
+.print-pdf .slide-chalkboard-buttons,
+.reveal.overview .slide-chalkboard-buttons {
+  display: none !important;
+}
+@media print {
+  .slide-chalkboard-buttons {
+    display: none !important;
+  }
+}
+
 #title-slide {
   .subtitle {
     margin-top: 1.5rem;
