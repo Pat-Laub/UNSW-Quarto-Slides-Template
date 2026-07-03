@@ -1,6 +1,6 @@
 window.QuartoLineHighlight = function () {
   function isPrintView() {
-    return /print-pdf/gi.test(window.location.search);
+    return /print-pdf/gi.test(window.location.search) || /view=print/gi.test(window.location.search);
   }
 
   const delimiters = {
@@ -38,7 +38,7 @@ window.QuartoLineHighlight = function () {
     divSourceCode.forEach((el) => {
       if (el.hasAttribute(kCodeLineNumbersAttr)) {
         const codeLineAttr = el.getAttribute(kCodeLineNumbersAttr);
-        el.removeAttribute("data-code-line-numbers");
+        el.removeAttribute(kCodeLineNumbersAttr);
         if (handleLinesSelector(deck, codeLineAttr)) {
           // Only process if attr is a string to select lines to highlights
           // e.g "1|3,6|8-11"
