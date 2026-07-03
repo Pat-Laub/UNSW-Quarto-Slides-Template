@@ -4,17 +4,13 @@ $body-bg: #ffffff;
 $link-color: #d94827;
 
 $presentation-font-smaller: 0.85;
-$presentation-heading-font-weight: 400;
 $presentation-h1-font-size: 2em;
 
 $mainColor: #383D3D;
 $headingColor: #383D3D;
 
-$font-family-sans-serif: "Book Antiqua", Palatino,
-  FreeSerif, serif !default;
-// headings
-$presentation-heading-font: "Book Antiqua", Palatino,
-  FreeSerif, serif !default;
+// Fonts are left to the `default` reveal.js theme (Source Sans Pro, which
+// Quarto bundles locally so rendering never fetches fonts from the network).
 
 $unsw-yellow: #fedc00;
 

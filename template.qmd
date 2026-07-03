@@ -5,7 +5,7 @@ author: Dr Patrick Laub
 date: today
 format:
   revealjs:
-    theme: [serif, custom.scss]
+    theme: [default, custom.scss]
     controls: true
     controls-tutorial: true
     logo: unsw-logo.png
