@@ -7,16 +7,21 @@ format:
 ---
 
 This is a template for using [Quarto](http://quarto.org) to create [reveal.js](http://revealjs.com) HTML slides according to a UNSW theme.
-Here are the generated slides in [HTML format](template.html) and in [PDF format](template.pdf). 
+Here are the generated slides in [HTML format](template.html) and in [PDF format](template.pdf).
 
-You can download the template as [a zip file](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/releases/download/v1.1.0/UNSW-Quarto-Slides-Template.zip) or you can clone the [Github repository](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template).
+To start a new set of slides, install Quarto and run
+
+```bash
+quarto use template Pat-Laub/UNSW-Quarto-Slides-Template
+```
+
+in an empty directory; this downloads just the template files you need.
+Alternatively, you can clone the [Github repository](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template).
 I used these tools to make the [lecture slides for ACTL3143 & ACTL5111](http://pat-laub.github.io/DeepLearningForActuaries/), a deep learning course for actuaries.
 
-I recommend using [RStudio](http://rstudio.com) to render the main [template.qmd](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/blob/main/template.qmd) file.
-Or, if you prefer the commandline, run `quarto render template.qmd`.
-In either case, you'll need to have Quarto installed first.
+To render the main [template.qmd](https://github.com/Pat-Laub/UNSW-Quarto-Slides-Template/blob/main/template.qmd) file, run `quarto render template.qmd` on the commandline, or use the Render button in [RStudio](http://rstudio.com) or VS Code (with the Quarto extension).
 
-For a detailed setup/explainer of how I use Quarto for lecture materials, check out the following screen I made:
+For a detailed setup/explainer of how I use Quarto for lecture materials, check out the following screencast I made:
 
 {{< video https://youtu.be/41yTFhQBXaE >}}
 
