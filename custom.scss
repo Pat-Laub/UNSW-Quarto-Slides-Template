@@ -3,14 +3,22 @@
 $body-bg: #ffffff;
 $link-color: #d94827;
 
+$presentation-font-size-root: 28px;
 $presentation-font-smaller: 0.85;
 $presentation-h1-font-size: 2em;
+// Normal-weight headings like both UNSW courses (Quarto's default is 600).
+$presentation-heading-font-weight: 400;
 
 $mainColor: #383D3D;
 $headingColor: #383D3D;
 
-// Fonts are left to the `default` reveal.js theme (Source Sans Pro, which
-// Quarto bundles locally so rendering never fetches fonts from the network).
+// Serif font stack for slides (body + headings). Quarto's `serif` base
+// theme does NOT carry its fonts through compilation, so the stack must be
+// set here explicitly. These are system fonts (Book Antiqua/Palatino on
+// macOS & Windows, FreeSerif on Linux), so rendering never fetches fonts
+// from the network.
+$font-family-sans-serif: "Book Antiqua", Palatino, FreeSerif, serif !default;
+$presentation-heading-font: $font-family-sans-serif !default;
 
 $unsw-yellow: #fedc00;
 
@@ -55,7 +63,7 @@ $unsw-polygon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vie
   height: 100%;
   background: $unsw-yellow;
   --bar-margin: calc(
-    (var(--viewport-width, 100vw) - var(--slide-width, 1050px) * var(--slide-scale, 1)) / 2
+    (var(--viewport-width, 100vw) - var(--slide-width, 1120px) * var(--slide-scale, 1)) / 2
   );
   width: clamp(0px, calc((var(--bar-margin) - 100px) * 1000), 100px);
 }
@@ -162,7 +170,7 @@ $unsw-polygon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vie
 
 /* Bring code block font size closer to body text (default is .55em) */
 .reveal pre {
-  font-size: 0.65em;
+  font-size: 0.7em;
 }
 
 /* Make sure the code outputs aren't too big vertically */

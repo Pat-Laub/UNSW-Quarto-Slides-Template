@@ -5,11 +5,14 @@ author: Dr Patrick Laub
 date: today
 format:
   revealjs:
-    theme: [default, custom.scss]
+    theme: [serif, custom.scss]
     controls: true
     controls-tutorial: true
     logo: unsw-logo.png
     slide-number: c/t
+    # Slightly wider than Quarto's 1050 default (height and margin are already
+    # the defaults, 700 and 0.1). Keep `--slide-width` in custom.scss in step.
+    width: 1120
     chalkboard:
       # Redraw saved ink instantly when arriving at a slide (must be > 0;
       # the plugin treats 0 as "unset" and falls back to its 800ms default).
