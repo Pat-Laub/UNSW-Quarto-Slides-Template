@@ -157,17 +157,173 @@ $bar-min: 24px;
   ) !important;
 }
 
-// Keep the chalkboard/notes-canvas corner buttons out of PDF exports (they are
-// presentation controls, not content) without needing a post-render step:
-// `.print-pdf` covers the ?view=print browser route, and `@media print` covers
-// decktape, whose printToPDF capture applies print stylesheets. Also hide them
-// in overview mode, like the logo, so they don't float over the slide grid.
-.print-pdf .slide-chalkboard-buttons,
-.reveal.overview .slide-chalkboard-buttons {
-  display: none !important;
+// ---------------------------------------------------------------------------
+// Freehand annotation (annotate.js): the ink layer, the tool panel that sits in
+// the yellow bar, and the pen button in the corner that opens it.
+// ---------------------------------------------------------------------------
+
+$ink-accent: #2668c7;
+$ink-panel-width: 44px;
+$ink-button-size: 34px;
+
+// The ink lives inside `.reveal .slides`, so reveal's slide transform scales it
+// and stored strokes stay in slide coordinates. There are two layers, because
+// reveal puts the current slide's content at `z-index: 11` and the two tools
+// want opposite sides of it:
+//
+//   * the pen sits above everything (and, being the topmost layer, is the one
+//     that receives all the pointer input, for both tools and the eraser);
+//   * the highlighter goes just below the pen and multiplies with the slide, so
+//     text keeps its own colour rather than being washed out by a 40% overlay.
+//     Blending has to be set on the layer, not on its paths: `z-index` makes
+//     each layer a stacking context, which would leave a path with nothing but
+//     its sibling strokes to blend with. Layer-wide opacity also stops
+//     overlapping highlighter strokes from compounding into dark blotches.
+.reveal .ink-layer {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  touch-action: none; // never let the browser take a drag for scrolling
+  z-index: 13;
+
+  &.drawing {
+    pointer-events: auto;
+    cursor: crosshair;
+  }
+
+  &.ink-highlighter {
+    z-index: 12;
+    opacity: 0.4;
+    mix-blend-mode: multiply;
+  }
+}
+
+.reveal .ink-panel {
+  position: fixed;
+  top: 50%;
+  // Centred in the yellow bar whenever the bar is wide enough to hold it (see
+  // the --bar-width geometry above), and tucked against the edge when it isn't.
+  right: calc(max(8px, (var(--bar-width, #{$bar-width}) - #{$ink-panel-width}) / 2));
+  transform: translateY(-50%);
+  z-index: 45;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: $ink-panel-width;
+  padding: 5px 0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+
+  &.active {
+    display: flex;
+  }
+
+  hr {
+    width: 22px;
+    height: 1px;
+    margin: 4px 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.15);
+  }
+}
+
+.reveal .ink-btn,
+.reveal .ink-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: $ink-button-size;
+  height: $ink-button-size;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: $mainColor;
+  cursor: pointer;
+  -webkit-appearance: none;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.07);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.reveal .ink-btn.active {
+  background: $ink-accent;
+  color: #fff;
+}
+
+.reveal .ink-btn[disabled] {
+  opacity: 0.25;
+  background: transparent;
+  cursor: default;
+}
+
+// Each swatch shows its colour as a dot; the button's `color` is set inline by
+// annotate.js, so the dot and its selection ring both just use currentColor.
+.reveal .ink-swatch::before {
+  content: "";
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.reveal .ink-swatch.active::before {
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px currentColor;
+}
+
+.reveal .ink-toggle {
+  position: fixed;
+  left: 30px;
+  bottom: 27px;
+  z-index: 30;
+  display: flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $link-color; // the colour Quarto gives its other corner buttons
+  cursor: pointer;
+
+  // The menu plugin's button also sits at left: 30px, so step aside for it.
+  &.ink-offset {
+    left: 74px;
+  }
+
+  &.active {
+    color: $ink-accent;
+  }
+
+  svg {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+// Keep the annotation controls out of PDF exports (they are presentation
+// controls, not content) without needing a post-render step: `.print-pdf`
+// covers the ?view=print browser route, and `@media print` covers decktape,
+// whose printToPDF capture applies print stylesheets. The ink layer goes with
+// them: there is one layer showing one slide's strokes, so in the stacked print
+// layout it would land on whichever slide happened to be current. Overview mode
+// is the same story — one layer, a whole grid of slides — so hide it there too.
+.print-pdf,
+.reveal.overview {
+  .ink-panel,
+  .ink-toggle,
+  .ink-layer {
+    display: none !important;
+  }
 }
 @media print {
-  .slide-chalkboard-buttons {
+  .ink-panel,
+  .ink-toggle,
+  .ink-layer {
     display: none !important;
   }
 }

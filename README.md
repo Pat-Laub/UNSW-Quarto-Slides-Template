@@ -15,9 +15,17 @@ quarto use template Pat-Laub/UNSW-Quarto-Slides-Template
 ```
 
 in an empty directory.
-This downloads just the files you need to start a new set of slides: `template.qmd`, `custom.scss`, `reveal-fixes.html` and `unsw-logo.png`.
+This downloads just the files you need to start a new set of slides: `template.qmd`, `custom.scss`, `reveal-fixes.html`, `annotate.js`, `perfect-freehand.min.js` and `unsw-logo.png`.
 
 Then render the slides with `quarto render template.qmd`, or use the Render button in RStudio or VS Code (with the Quarto extension).
+
+## Drawing on the slides
+
+Press <kbd>d</kbd> during a presentation (or click the pen in the bottom-left corner) to open the drawing tools: a pen, a highlighter and an eraser, in five colours.
+The eraser removes a whole stroke at a time rather than rubbing out pixels, <kbd>⌘Z</kbd>/<kbd>Ctrl+Z</kbd> undoes, and <kbd>Esc</kbd> puts the tools away.
+Annotations are saved in the browser, so they survive a reload and are still there when you return to a slide.
+
+This is `annotate.js`, which uses [perfect-freehand](https://github.com/steveruizok/perfect-freehand) (MIT) to shape the strokes; it replaces the reveal.js chalkboard plugin.
 
 The demo slides include a couple of Python code cells, so rendering them as-is requires the `jupyter`, `matplotlib` and `seaborn` Python packages.
 If you don't need Python, just delete those cells from `template.qmd`.

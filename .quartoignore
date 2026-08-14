@@ -1,7 +1,7 @@
 # Files excluded when someone runs
 #   quarto use template Pat-Laub/UNSW-Quarto-Slides-Template
 # so they get a clean starting point: template.qmd, custom.scss,
-# reveal-fixes.html and unsw-logo.png.
+# reveal-fixes.html, annotate.js, perfect-freehand.min.js and unsw-logo.png.
 #
 # These are rendered copies of the template, committed only so that
 # GitHub Pages can serve them.
