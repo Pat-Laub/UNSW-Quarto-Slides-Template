@@ -25,6 +25,10 @@ Press <kbd>d</kbd> during a presentation (or click the pen in the bottom-left co
 The eraser removes a whole stroke at a time rather than rubbing out pixels, <kbd>⌘Z</kbd>/<kbd>Ctrl+Z</kbd> undoes, and <kbd>Esc</kbd> puts the tools away.
 Annotations are saved in the browser, so they survive a reload and are still there when you return to a slide.
 
+You can also rub something out without putting the pen down: scribble back and forth across it and it goes when you lift the pen.
+The ink that will go fades as you scribble, so you can see what you are about to take; one undo brings it back.
+Only ink of the same colour drawn with the same tool is erased this way, and a scribble over empty slide is just a scribble.
+
 This is `annotate.js`, which uses [perfect-freehand](https://github.com/steveruizok/perfect-freehand) (MIT) to shape the strokes; it replaces the reveal.js chalkboard plugin.
 
 The demo slides include a couple of Python code cells, so rendering them as-is requires the `jupyter`, `matplotlib` and `seaborn` Python packages.

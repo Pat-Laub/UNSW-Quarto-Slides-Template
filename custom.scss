@@ -197,6 +197,12 @@ $ink-button-size: 34px;
     opacity: 0.4;
     mix-blend-mode: multiply;
   }
+
+  // What a scribble in progress is about to rub out, faded the way an eraser
+  // fades what it is passing over; the scribble itself fades with it.
+  .ink-fading {
+    opacity: 0.3;
+  }
 }
 
 .reveal .ink-panel {
