@@ -161,6 +161,18 @@ $unsw-polygon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vie
   ) !important;
 }
 
+// Keep the slide count in proportion to the responsive yellow bar as well:
+// 16px on a full bar, and the same again when there is no bar, so the clamp's
+// two branches meet. The 0.42em padding is reveal's own 5px-at-12px ratio.
+.reveal .slide-number {
+  font-size: clamp(
+    calc(var(--bar-width, #{$bar-width}) * 0.16),
+    calc((#{$bar-min} - var(--bar-margin)) * 1000),
+    16px
+  ) !important;
+  padding: 0.42em !important;
+}
+
 // The navigation block belongs in the slide area, not on top of the logo.
 // Anchor its right edge to the left edge of the responsive yellow bar.
 .reveal .controls {
