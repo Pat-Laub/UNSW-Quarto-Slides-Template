@@ -666,11 +666,27 @@
     // The right button is the eraser here, so it has no menu to bring up — one
     // would land mid-stroke and interrupt the erase it was part of.
     surface.addEventListener('contextmenu', function (e) { if (tool) e.preventDefault(); });
-    // Modern browsers give reveal its swipes through pointer events, which the
-    // handlers above already keep to themselves; these are for anything else in
-    // the deck still listening for a touch drag.
-    ['touchstart', 'touchmove'].forEach(function (type) {
-      surface.addEventListener(type, function (e) { if (live || erasing) e.stopPropagation(); });
+    // iPadOS decides for itself what a pencil or a finger on the page means —
+    // scroll it, select the text under the tip, start a system gesture — and
+    // having decided, it cancels the pointer stream the stroke was being built
+    // from, so nothing is drawn at all. `touch-action: none` is not enough
+    // there: the touch events themselves have to be refused, which is what
+    // tldraw does on the canvas it hands an Apple Pencil. Registered
+    // non-passive, or the browser is free to ignore the refusal.
+    //
+    // Pointer events are dispatched ahead of touch events and are not
+    // suppressed by this, so reveal still gets to read a finger as a swipe
+    // (see down(), which leaves those alone once a pen has been used).
+    ['touchstart', 'touchmove', 'touchend'].forEach(function (type) {
+      surface.addEventListener(type, function (e) {
+        if (!tool) return;
+        if (live || erasing) e.stopPropagation();
+        if (e.cancelable) e.preventDefault();
+      }, { passive: false });
+    });
+    // Safari's own pinch and rotate, which have nothing to do on a slide.
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (type) {
+      surface.addEventListener(type, function (e) { if (tool) e.preventDefault(); });
     });
 
     panel = document.createElement('div');
