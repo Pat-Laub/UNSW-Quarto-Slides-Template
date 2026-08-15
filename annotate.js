@@ -43,6 +43,15 @@
   var ERASER = 10;      // eraser hit radius, in slide coordinates
   var UNDO_DEPTH = 40;  // snapshots kept per slide
 
+  // How far each layer reaches beyond the slide, as a multiple of the deck's
+  // size. The slide is letterboxed inside the window, and content sits flush
+  // against its edges: a stroke started a pixel to the left of a paragraph would
+  // otherwise miss the layer entirely and land on reveal's background, where the
+  // browser reads the drag as selecting text. Overscanning covers the letterbox,
+  // so the pointer meets ink wherever it goes down. Kept in step with the
+  // layers' negative `inset` in annotate.scss.
+  var OVERSCAN = 1;
+
   // Scribbling over a mistake is the gesture everyone already makes on paper,
   // and it saves reaching for the eraser and back mid-sentence. The thresholds
   // below keep it a narrow gesture: a stroke that sweeps back along its own
@@ -77,6 +86,7 @@
   var nodes = new WeakMap(); // stroke -> its <path>, for the fade preview
   var thinned = new WeakMap();// stroke -> its simplified points
   var layers = {};           // one SVG per drawing tool; see build()
+  var view;                  // every layer's viewBox, in slide coordinates
   var W, H, svg, panel, toggle, saveTimer;
 
   /* ------------------------------ stroke maths --------------------------- */
@@ -289,12 +299,14 @@
 
   // Map a pointer event onto slide coordinates. Going through the rendered box
   // keeps this correct under reveal's slide scaling and the zoom plugin's
-  // transform alike, and rounding keeps the stored JSON small.
+  // transform alike, and rounding keeps the stored JSON small. The box is the
+  // overscanned layer rather than the slide, so a point outside the slide maps
+  // outside [0, W] x [0, H] — which is what it is.
   function at(e) {
     var r = svg.getBoundingClientRect();
     return [
-      Math.round((e.clientX - r.left) / r.width * W * 10) / 10,
-      Math.round((e.clientY - r.top) / r.height * H * 10) / 10,
+      Math.round((view[0] + (e.clientX - r.left) / r.width * view[2]) * 10) / 10,
+      Math.round((view[1] + (e.clientY - r.top) / r.height * view[3]) * 10) / 10,
       Math.round(e.pressure * 100) / 100
     ];
   }
@@ -498,7 +510,7 @@
     ['highlighter', 'pen'].forEach(function (t) {
       var el = document.createElementNS(SVG_NS, 'svg');
       el.setAttribute('class', 'ink-layer ink-' + t);
-      el.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+      el.setAttribute('viewBox', view.join(' '));
       slides.insertBefore(el, slides.firstChild);
       layers[t] = el;
     });
@@ -581,6 +593,7 @@
     var cfg = Reveal.getConfig();
     W = parseFloat(cfg.width) || 960;
     H = parseFloat(cfg.height) || 700;
+    view = [-OVERSCAN * W, -OVERSCAN * H, (1 + 2 * OVERSCAN) * W, (1 + 2 * OVERSCAN) * H];
     build();
     render();
 

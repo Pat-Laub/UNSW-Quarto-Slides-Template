@@ -26,7 +26,10 @@ $ink-button-size: 34px !default;
 //     overlapping highlighter strokes from compounding into dark blotches.
 .reveal .ink-layer {
   position: absolute;
-  inset: 0;
+  // A deck's width and height either side of the slide, so the layer also
+  // covers the letterbox the slide is scaled into: see OVERSCAN in annotate.js,
+  // which this has to agree with, and which explains why.
+  inset: -100%;
   overflow: visible;
   pointer-events: none;
   touch-action: none; // never let the browser take a drag for scrolling
