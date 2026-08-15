@@ -131,28 +131,36 @@ $ink-button-size: 34px !default;
 }
 
 // Full screen and the pen, in a row continuing reveal's bottom-left corner from
-// the menu plugin's hamburger. That button is 2.2rem inset 8px from the corner,
-// so matching its footprint and offsetting by its width leaves all three
-// reading as one control row; its artwork sits a little above the bottom of its
-// inline box, which is what the 13px (rather than 8px) lifts our icons to meet.
+// the menu plugin's hamburger. That button draws its icon in a 2.2rem box whose
+// inline layout leaves it sitting 14.2px above the bottom of the window, so
+// taking the same box at the same height and offsetting by its width leaves all
+// three reading as one control row.
 .reveal .ink-launchers {
+  --ink-button: 2.2rem;
+
+  // The width below which quarto's footer.css shrinks the hamburger; follow it
+  // so our two buttons don't tower over it.
+  @media screen and (max-width: 800px) {
+    --ink-button: 1.3rem;
+  }
+
   position: fixed;
   left: 8px;
-  bottom: 13px;
+  bottom: 14.2px;
   z-index: 30;
   display: flex;
   gap: 4px;
 
   &.ink-offset {
-    left: calc(8px + 2.2rem + 8px);
+    left: calc(8px + var(--ink-button) + 8px);
   }
 }
 
 .reveal .ink-toggle {
   display: grid;
   place-items: center;
-  width: 2.2rem;
-  height: 2.2rem;
+  width: var(--ink-button);
+  height: var(--ink-button);
   padding: 0;
   border: 0;
   background: transparent;
@@ -165,11 +173,19 @@ $ink-button-size: 34px !default;
     color: var(--r-link-color-dark);
   }
 
-  // 28px, not the 26px the icons are drawn at, so their strokes carry the same
-  // weight as the menu plugin's 2.2rem hamburger beside them.
+  // The hamburger's bars are wider than they are tall, so matching their height
+  // leaves our square icons looking small beside it. These shares match its
+  // width instead — 11/16 of its box — which also lands our 1.7-unit strokes on
+  // the thickness of its bars. The pen fills more of its viewBox than the full
+  // screen brackets do, so it takes the smaller share of the button.
   svg {
-    width: 28px;
-    height: 28px;
+    width: 93%;
+    height: 93%;
+  }
+
+  &.ink-pen svg {
+    width: 90%;
+    height: 90%;
   }
 }
 

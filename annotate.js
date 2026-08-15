@@ -532,7 +532,7 @@
       button('data-act', 'clear', 'Clear this slide');
 
     toggle = document.createElement('button');
-    toggle.className = 'ink-toggle';
+    toggle.className = 'ink-toggle ink-pen';
     toggle.title = 'Annotate (d)';
     toggle.innerHTML = icon('pen');
     toggle.addEventListener('click', function () { open(!tool); });
