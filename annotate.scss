@@ -16,14 +16,15 @@ $ink-button-size: 34px !default;
 // reveal puts the current slide's content at `z-index: 11` and the two tools
 // want opposite sides of it:
 //
-//   * the pen sits above everything (and, being the topmost layer, is the one
-//     that receives all the pointer input, for both tools and the eraser);
+//   * the pen sits above everything;
 //   * the highlighter goes just below the pen and multiplies with the slide, so
 //     text keeps its own colour rather than being washed out by a 40% overlay.
 //     Blending has to be set on the layer, not on its paths: `z-index` makes
 //     each layer a stacking context, which would leave a path with nothing but
 //     its sibling strokes to blend with. Layer-wide opacity also stops
 //     overlapping highlighter strokes from compounding into dark blotches.
+//
+// Neither layer takes any input; `.ink-surface` below does that for both.
 .reveal .ink-layer {
   position: absolute;
   // A deck's width and height either side of the slide, so the layer also
@@ -32,13 +33,7 @@ $ink-button-size: 34px !default;
   inset: -100%;
   overflow: visible;
   pointer-events: none;
-  touch-action: none; // never let the browser take a drag for scrolling
   z-index: 13;
-
-  &.drawing {
-    pointer-events: auto;
-    cursor: crosshair;
-  }
 
   &.ink-highlighter {
     z-index: 12;
@@ -50,6 +45,31 @@ $ink-button-size: 34px !default;
   // scribble — shown faded until the tool is lifted and it actually goes.
   .ink-fading {
     opacity: 0.3;
+  }
+}
+
+// What the pen, the highlighter and the eraser are all actually drawn on: one
+// box over both layers, matching them exactly (see build() in annotate.js for
+// why the input is not taken on the layers themselves). It only takes the
+// pointer while a tool is out, so the slide's own links stay clickable.
+//
+// `touch-action` is the whole point of it: without it the browser claims a
+// stylus or finger drag for scrolling and the stroke never happens. The
+// selection properties are the same idea for a pen on iPadOS, which otherwise
+// reads a drag over text as selecting it.
+.reveal .ink-surface {
+  position: absolute;
+  inset: -100%;
+  z-index: 14;
+  pointer-events: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+
+  &.drawing {
+    pointer-events: auto;
+    cursor: crosshair;
   }
 }
 
@@ -202,14 +222,16 @@ $ink-button-size: 34px !default;
 .reveal.overview {
   .ink-panel,
   .ink-launchers,
-  .ink-layer {
+  .ink-layer,
+  .ink-surface {
     display: none !important;
   }
 }
 @media print {
   .ink-panel,
   .ink-launchers,
-  .ink-layer {
+  .ink-layer,
+  .ink-surface {
     display: none !important;
   }
 }

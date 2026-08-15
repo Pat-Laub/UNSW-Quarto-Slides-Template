@@ -88,7 +88,8 @@
   var thinned = new WeakMap();// stroke -> its simplified points
   var layers = {};           // one SVG per drawing tool; see build()
   var view;                  // every layer's viewBox, in slide coordinates
-  var W, H, svg, panel, toggle, saveTimer;
+  var pen = false;           // a pen has been used, so fingers are not ink
+  var W, H, surface, panel, toggle, saveTimer;
 
   /* ------------------------------ stroke maths --------------------------- */
 
@@ -304,7 +305,7 @@
   // overscanned layer rather than the slide, so a point outside the slide maps
   // outside [0, W] x [0, H] — which is what it is.
   function at(e) {
-    var r = svg.getBoundingClientRect();
+    var r = surface.getBoundingClientRect();
     return [
       Math.round((view[0] + (e.clientX - r.left) / r.width * view[2]) * 10) / 10,
       Math.round((view[1] + (e.clientY - r.top) / r.height * view[3]) * 10) / 10,
@@ -321,6 +322,11 @@
 
   function down(e) {
     if (!tool) return;
+    if (e.pointerType === 'pen') pen = true;
+    // Once a pen has been used, a finger is a palm resting on the slide or a
+    // swipe to the next one — never ink. The event is left alone rather than
+    // taken, so reveal still gets to read it as a swipe.
+    if (pen && e.pointerType === 'touch') return;
     // Hold the right button — or the barrel button a stylus reports as one, or
     // the inverted end of a pen, which is button 5 — and it erases for as long
     // as it is held: scribble over what is to go, let go, and the tool that was
@@ -331,7 +337,9 @@
     if (borrowed && (live || erasing)) return;  // a stroke is already in progress
     e.preventDefault();
     e.stopPropagation();            // keep reveal from reading the drag as a swipe
-    svg.setPointerCapture(e.pointerId);
+    // A stroke survives the pointer leaving the surface; nothing else in the
+    // deck wants the events, so carrying on without capture is no worse.
+    try { surface.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
     if (borrowed) { held = tool; tool = 'eraser'; }
     var p = at(e);
     if (tool === 'eraser') { erasing = true; marked = []; erase(p[0], p[1]); sync(); return; }
@@ -347,15 +355,20 @@
   }
 
   function move(e) {
-    if (!tool) return;
+    if (!live && !erasing) return;
+    // Reveal navigates on a pointer drag as well as on a touch swipe, and it
+    // reads every move, not just the ones that follow a pointerdown it saw. A
+    // stroke is not a swipe, so the moves that make it up stop here.
+    e.stopPropagation();
     if (erasing) { points(e).forEach(function (p) { erase(p[0], p[1]); }); return; }
-    if (!live) return;
     live.stroke.p = live.stroke.p.concat(points(e));
     live.el.setAttribute('d', pathData(live.stroke, true));
     scribble();
   }
 
-  function up() {
+  function up(e) {
+    var drawn = live || erasing;
+    if (drawn) e.stopPropagation();
     if (erasing) {
       erasing = false;
       if (marked.length) rub();
@@ -492,7 +505,7 @@
     var key = slideKey(), on = !!tool;
     panel.classList.toggle('active', on);
     toggle.classList.toggle('active', on);
-    svg.classList.toggle('drawing', on);
+    surface.classList.toggle('drawing', on);
     // A recognised scribble lights the eraser, but only on the panel: the tool
     // itself has to stay the pen, or the stroke being drawn would be cut off.
     var shown = armed ? 'eraser' : tool;
@@ -510,8 +523,7 @@
 
   function build() {
     // One layer per tool: the highlighter's has to sit below the pen's so it can
-    // multiply with the slide (see custom.scss). The pen's is topmost, so it is
-    // the one that takes the pointer input, whichever tool is selected.
+    // multiply with the slide (see annotate.scss).
     //
     // They go *before* the slides, not after: reveal decides it is at the end of
     // the deck by asking whether the current section has a `nextElementSibling`,
@@ -528,19 +540,31 @@
       slides.insertBefore(el, slides.firstChild);
       layers[t] = el;
     });
-    svg = layers.pen;
 
-    svg.addEventListener('pointerdown', down);
-    svg.addEventListener('pointermove', move);
-    svg.addEventListener('pointerup', up);
-    svg.addEventListener('pointercancel', up);
+    // The layers paint; a plain box over them takes the input. That box is an
+    // ordinary <div> because a touch has to land on one: WebKit does not apply
+    // `touch-action` to an <svg>, so on an iPad the browser claimed every
+    // stylus and finger drag on the layer as a scroll or a text selection and
+    // cancelled the stroke before it had started. A div with `touch-action:
+    // none` is the path every drawing surface on the web takes. It is laid out
+    // exactly like the layers, so `at()` maps a point on it into slide
+    // coordinates the same way, and its z-index puts it above both of them.
+    surface = document.createElement('div');
+    surface.className = 'ink-surface';
+    slides.insertBefore(surface, slides.firstChild);
+
+    surface.addEventListener('pointerdown', down);
+    surface.addEventListener('pointermove', move);
+    surface.addEventListener('pointerup', up);
+    surface.addEventListener('pointercancel', up);
     // The right button is the eraser here, so it has no menu to bring up — one
     // would land mid-stroke and interrupt the erase it was part of.
-    svg.addEventListener('contextmenu', function (e) { if (tool) e.preventDefault(); });
-    // Reveal reads touch drags on its root element as swipe navigation; while a
-    // tool is active the drag is a stroke, so keep those events to ourselves.
+    surface.addEventListener('contextmenu', function (e) { if (tool) e.preventDefault(); });
+    // Modern browsers give reveal its swipes through pointer events, which the
+    // handlers above already keep to themselves; these are for anything else in
+    // the deck still listening for a touch drag.
     ['touchstart', 'touchmove'].forEach(function (type) {
-      svg.addEventListener(type, function (e) { if (tool) e.stopPropagation(); });
+      surface.addEventListener(type, function (e) { if (live || erasing) e.stopPropagation(); });
     });
 
     panel = document.createElement('div');
