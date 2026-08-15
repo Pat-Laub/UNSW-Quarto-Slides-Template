@@ -235,3 +235,13 @@ details.code-fold:not([open]) {
   p:first-child { margin-top: 0; }
   p:last-child { margin-bottom: 0; }
 }
+
+// The progress bar along the bottom is a *button* as well as a gauge: reveal
+// hangs a 10px-tall invisible strip above the 3px bar (`.progress::after`) and
+// jumps to whichever slide you clicked along its width. Brushing the bottom of
+// the screen — easy to do with a pencil, or with a laptop trackpad — therefore
+// throws you a long way forward or back. Keep the bar and take away the click;
+// it stops the `::after` strip from being hit too.
+.reveal .progress {
+  pointer-events: none;
+}
