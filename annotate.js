@@ -381,6 +381,22 @@
     return ((cfg && cfg.zoomKey) || (/Linux/.test(navigator.platform) ? 'ctrl' : 'alt')) + 'Key';
   }
 
+  // The controls a tap has to be able to reach with a tool in hand: ours, and
+  // the ones reveal and its plugins put around the slide. Everything else
+  // inside the deck — including a link in the middle of a paragraph — is
+  // something to draw on, exactly as it was when a box over the slide took the
+  // input and covered them all.
+  var CHROME = '.ink-panel, .ink-launchers, .controls, .progress, .slide-number,' +
+    '.slide-menu, .slide-menu-button, .slide-menu-overlay, .speaker-controls';
+
+  function ours(e) {
+    if (!tool) return false;
+    // Mid-stroke everything is ours, wherever the tip has wandered to.
+    if (live || erasing || touching !== null) return true;
+    var t = e.target;
+    return !!t && (!t.closest || !t.closest(CHROME));
+  }
+
   function down(e) {
     if (!tool) return;
     if (e.pointerType === 'pen') pen = true;
@@ -725,36 +741,50 @@
     surface.className = 'ink-surface';
     Reveal.getRevealElement().appendChild(surface);
 
-    surface.addEventListener('pointerdown', function (e) { pointers = true; down(e); });
-    surface.addEventListener('pointermove', move);
-    surface.addEventListener('pointerup', up);
-    surface.addEventListener('pointercancel', up);
+    // Every listener hangs off the window, in the capture phase, rather than
+    // off the surface: on an iPad the surface is never made the target of
+    // anything. Logging the deck there showed a pencil's whole stream —
+    // `pointerdown`, `pointermove`, `touchstart [stylus]`, `touchmove` — arrive
+    // at the window and not one of them reach an element covering the slide,
+    // finger taps included. Which element the browser decides was touched is
+    // therefore not something to build on; we take the events where they
+    // certainly are, and `ours()` decides what they are for.
+    //
+    // Capturing on the window also puts us ahead of reveal, whose swipe
+    // navigation reads the same pointer events, so a stroke can be kept from
+    // it by stopping propagation (down(), move() and up() do).
+    var input = {
+      pointerdown: function (e) { pointers = true; down(e); },
+      pointermove: move,
+      pointerup: up,
+      pointercancel: up,
+      touchstart: touchDown,
+      touchmove: touchMove,
+      touchend: touchUp,
+      touchcancel: touchUp
+    };
+    Object.keys(input).forEach(function (type) {
+      window.addEventListener(type, function (e) {
+        if (!ours(e)) return;
+        // iPadOS decides for itself what a pencil or a finger on the page
+        // means — scroll it, select the text under the tip, start a system
+        // gesture — and having decided, it cancels the stream the stroke was
+        // being built from. `touch-action: none` is not enough there; the
+        // touch events themselves have to be refused, as tldraw refuses them
+        // on the canvas it hands an Apple Pencil. Non-passive, or the browser
+        // is free to ignore the refusal.
+        if (type.indexOf('touch') === 0 && e.cancelable) e.preventDefault();
+        input[type](e);
+      }, { capture: true, passive: false });
+    });
     // The right button is the eraser here, so it has no menu to bring up — one
     // would land mid-stroke and interrupt the erase it was part of.
-    surface.addEventListener('contextmenu', function (e) { if (tool) e.preventDefault(); });
-    // iPadOS decides for itself what a pencil or a finger on the page means —
-    // scroll it, select the text under the tip, start a system gesture — and
-    // having decided, it cancels the pointer stream the stroke was being built
-    // from, so nothing is drawn at all. `touch-action: none` is not enough
-    // there: the touch events themselves have to be refused, which is what
-    // tldraw does on the canvas it hands an Apple Pencil. Registered
-    // non-passive, or the browser is free to ignore the refusal.
-    //
-    // Pointer events are dispatched ahead of touch events and are not
-    // suppressed by this, so reveal still gets to read a finger as a swipe
-    // (see down(), which leaves those alone once a pen has been used).
-    var touch = { touchstart: touchDown, touchmove: touchMove, touchend: touchUp, touchcancel: touchUp };
-    Object.keys(touch).forEach(function (type) {
-      surface.addEventListener(type, function (e) {
-        if (!tool) return;
-        if (live || erasing) e.stopPropagation();
-        if (e.cancelable) e.preventDefault();
-        touch[type](e);
-      }, { passive: false });
-    });
+    window.addEventListener('contextmenu', function (e) {
+      if (ours(e)) e.preventDefault();
+    }, true);
     // Safari's own pinch and rotate, which have nothing to do on a slide.
     ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (type) {
-      surface.addEventListener(type, function (e) { if (tool) e.preventDefault(); });
+      window.addEventListener(type, function (e) { if (tool) e.preventDefault(); }, true);
     });
 
     panel = document.createElement('div');
