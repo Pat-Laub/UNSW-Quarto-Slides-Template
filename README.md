@@ -29,14 +29,16 @@ turns `template.html` into `template.pdf`. It loads the deck in headless Chrome 
 
 ## Drawing on the slides
 
-Press <kbd>d</kbd> during a presentation (or click the pen in the bottom-left corner) to open the drawing tools: a pen, a highlighter and an eraser, in five colours.
-The eraser removes a whole stroke at a time rather than rubbing out pixels, <kbd>⌘Z</kbd>/<kbd>Ctrl+Z</kbd> undoes, and <kbd>Esc</kbd> puts the tools away.
-Annotations are saved in the browser, so they survive a reload and are still there when you return to a slide.
+Press <kbd>d</kbd> during a presentation (or click the pen in the bottom-left corner) to open the drawing tools: a pen, a highlighter and an eraser, in five colours (the first draws yellow while the highlighter is out).
+The eraser removes a whole stroke at a time rather than rubbing out pixels, <kbd>⌘Z</kbd>/<kbd>Ctrl+Z</kbd> undoes, <kbd>v</kbd> hides the ink to show the slide underneath, and <kbd>Esc</kbd> puts the tools away.
+Draw with a mouse, a finger, or a stylus — an Apple Pencil on an iPad is what it is meant for, and once a pen has been used a finger swipes to the next slide instead of drawing.
+Annotations are saved in the browser, so they survive a reload and are still there when you return to a slide; the last two buttons on the panel write the whole deck's ink out to a file and read one back, since the browser's copy does not follow you to another device.
 
 You can also rub something out without putting the pen down: scribble back and forth across it and it goes when you lift the pen.
 The ink that will go fades as you scribble, so you can see what you are about to take; one undo brings it back.
 The eraser works the same way: what you pass over fades, and goes when you lift.
 Only ink of the same colour drawn with the same tool is erased this way, and a scribble over empty slide is just a scribble.
+Holding the right mouse button — or the barrel button on a stylus — erases in the same two steps without switching tools, and hands back the pen when you let go.
 
 This is `annotate.js`, which uses [perfect-freehand](https://github.com/steveruizok/perfect-freehand) (MIT) to shape the strokes; it replaces the reveal.js chalkboard plugin.
 

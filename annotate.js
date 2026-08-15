@@ -20,7 +20,7 @@
 // reveal's slide transform: we can work in slide coordinates (the deck's
 // configured width × height) and let the browser scale the result. That also
 // makes stored strokes independent of the window size they were drawn at.
-// Styling — and why there is a layer per tool — is in custom.scss.
+// Styling — and why there is a layer per tool — is in annotate.scss.
 (function () {
   if (!window.perfectFreehand) return;
   var getStroke = perfectFreehand.getStroke;
@@ -39,6 +39,11 @@
     pen: { size: 5, thinning: 0.6, smoothing: 0.5, streamline: 0.45 },
     highlighter: { size: 28, thinning: 0, smoothing: 0.6, streamline: 0.55 }
   };
+
+  // Black ink is black, but a black *highlighter* is a grey smear over the
+  // words it is meant to pick out. The first swatch draws — and shows itself
+  // as — the colour a highlighter actually is while that tool is in hand.
+  var HIGHLIGHT = '#facc15';
 
   var ERASER = 10;      // eraser hit radius, in slide coordinates
   var UNDO_DEPTH = 40;  // snapshots kept per slide
@@ -78,6 +83,7 @@
   var undos = {}, redos = {};// { slideKey: [JSON snapshot, ...] }
   var tool = null;           // active tool; null exactly when the panel is closed
   var lastTool = 'pen';      // restored when the panel is reopened
+  var hidden = false;        // the ink is parked, showing the slide underneath
   var colour = COLOURS[0][1];
   var live = null;           // { stroke, el } while a stroke is being drawn
   var erasing = false;       // an eraser drag is in progress
@@ -90,7 +96,7 @@
   var view;                  // every layer's viewBox, in slide coordinates
   var pen = false;           // a pen has been used, so fingers are not ink
   var hovers = 0;            // consecutive hovering mouse moves; see hover()
-  var W, H, surface, panel, toggle, saveTimer;
+  var W, H, surface, panel, picker, toggle, saveTimer;
 
   /* ------------------------------ stroke maths --------------------------- */
 
@@ -245,9 +251,10 @@
   function strokes() { return ink[slideKey()] || []; }
 
   // Call before every change: records the state to come back to, and drops the
-  // redo branch we are about to diverge from.
-  function snapshot() {
-    var key = slideKey();
+  // redo branch we are about to diverge from. Every slide has its own stacks,
+  // so a change to another slide's ink says which.
+  function snapshot(key) {
+    key = key || slideKey();
     var stack = undos[key] = undos[key] || [];
     stack.push(JSON.stringify(ink[key] || []));
     if (stack.length > UNDO_DEPTH) stack.shift();
@@ -264,10 +271,15 @@
     save();
   }
 
-  function clear() {
-    if (!strokes().length) return;
-    snapshot();
-    ink[slideKey()] = [];
+  // This slide, or with Shift the whole deck. A deck-wide clear asks first: it
+  // is undoable, but only a slide at a time, so putting it all back is a walk
+  // through the deck rather than one ⌘Z.
+  function clear(all) {
+    var keys = Object.keys(ink).filter(function (k) { return ink[k].length; });
+    if (!all) keys = keys.filter(function (k) { return k === slideKey(); });
+    if (!keys.length) return;
+    if (all && !confirm('Clear the annotations on all ' + keys.length + ' annotated slides?')) return;
+    keys.forEach(function (k) { snapshot(k); ink[k] = []; });
     render();
     save();
   }
@@ -292,10 +304,45 @@
   function save() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function () {
-      var out = {};
-      Object.keys(ink).forEach(function (k) { if (ink[k].length) out[k] = ink[k]; });
-      try { localStorage.setItem(STORE, JSON.stringify(out)); } catch (e) { /* full or blocked */ }
+      try { localStorage.setItem(STORE, JSON.stringify(kept())); } catch (e) { /* full or blocked */ }
     }, 400);
+  }
+
+  function kept() {
+    var out = {};
+    Object.keys(ink).forEach(function (k) { if (ink[k].length) out[k] = ink[k]; });
+    return out;
+  }
+
+  // localStorage is this browser on this machine: the ink does not follow the
+  // deck to another device, and clearing site data takes it. These two put a
+  // whole deck's ink in a file and read one back — the file is the same JSON
+  // that is stored, keyed by slide, so it lands back on the slides it was
+  // drawn on.
+  function download() {
+    var name = (location.pathname.split('/').pop() || 'slides').replace(/\.html?$/, '');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(kept())], { type: 'application/json' }));
+    a.download = name + '-ink.json';
+    panel.appendChild(a);  // not every browser follows a link that isn't in the page
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+  }
+
+  function upload(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var data;
+      try { data = JSON.parse(reader.result); } catch (e) { return; }
+      if (!data || typeof data !== 'object') return;
+      ink = data;
+      undos = {};  // the ink these described is not the ink that is here now
+      redos = {};
+      render();
+      save();
+    };
+    reader.readAsText(file);
   }
 
   /* ------------------------------- drawing ------------------------------- */
@@ -321,9 +368,21 @@
     return (evs && evs.length ? evs : [e]).map(at);
   }
 
+  // The modifier reveal's zoom plugin magnifies on (ctrl on Linux, otherwise
+  // alt), honouring an explicit `zoomKey`; the same one the arrow-key panning
+  // in reveal-fixes.html looks for.
+  function zoomModifier() {
+    var cfg = Reveal.getConfig();
+    return ((cfg && cfg.zoomKey) || (/Linux/.test(navigator.platform) ? 'ctrl' : 'alt')) + 'Key';
+  }
+
   function down(e) {
     if (!tool) return;
     if (e.pointerType === 'pen') pen = true;
+    // An Alt/Option-click belongs to the zoom plugin. It magnifies off
+    // `mousedown` — a separate event we never touch — so standing aside here is
+    // all it takes to stop every magnification leaving a dot behind.
+    if (e[zoomModifier()]) return;
     // Once a pen has been used, a finger is a palm resting on the slide or a
     // swipe to the next one — never ink. The event is left alone rather than
     // taken, so reveal still gets to read it as a swipe.
@@ -346,7 +405,7 @@
     var p = at(e);
     if (tool === 'eraser') { erasing = true; marked = []; erase(p[0], p[1]); sync(); return; }
     snapshot();
-    var stroke = { t: tool, c: colour, s: e.pointerType !== 'pen', p: [p] };
+    var stroke = { t: tool, c: inkColour(), s: e.pointerType !== 'pen', p: [p] };
     (ink[slideKey()] = ink[slideKey()] || []).push(stroke);
     live = { stroke: stroke, el: pathFor(stroke, true) };
     nodes.set(stroke, live.el);
@@ -471,6 +530,8 @@
     undo: '<path d="M4.5 9.5h10a4.5 4.5 0 0 1 0 9H9"/><path d="M8 5.5l-4 4 4 4"/>',
     redo: '<path d="M19.5 9.5h-10a4.5 4.5 0 0 0 0 9H15"/><path d="M16 5.5l4 4-4 4"/>',
     clear: '<path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 12.5h9L17.5 7"/>',
+    download: '<path d="M12 4v11"/><path d="M8 11.5l4 4 4-4"/><path d="M4.5 19.5h15"/>',
+    upload: '<path d="M12 15.5v-11"/><path d="M8 8.5l4-4 4 4"/><path d="M4.5 19.5h15"/>',
     fullscreen: '<path d="M4 9V4h5"/><path d="M15 4h5v5"/><path d="M20 15v5h-5"/><path d="M9 20H4v-5"/>'
   };
 
@@ -502,7 +563,23 @@
   function open(on) {
     if (tool) lastTool = tool;
     tool = on ? lastTool : null;
+    hidden = false;  // the ink comes back with the tools that made it
     sync();
+  }
+
+  // Park the ink: the slide as it was written, without the writing on it, for
+  // showing the audience the point before the working. Drawing is suspended
+  // while it is away — a stroke you cannot see is no use — and V brings back
+  // the ink, the panel and the tool that was in hand, all where they were.
+  function hide(on) {
+    hidden = on;
+    sync();
+  }
+
+  // The colour this tool draws in: the swatch's own, except that the first one
+  // is a highlighter's yellow while the highlighter is out.
+  function inkColour() {
+    return tool === 'highlighter' && colour === COLOURS[0][1] ? HIGHLIGHT : colour;
   }
 
   // Redraw the current slide's ink from scratch. The lists are short (a slide
@@ -523,10 +600,13 @@
   }
 
   function sync() {
-    var key = slideKey(), on = !!tool;
+    var key = slideKey(), on = !!tool && !hidden;
     panel.classList.toggle('active', on);
     toggle.classList.toggle('active', on);
     surface.classList.toggle('drawing', on);
+    Object.keys(layers).forEach(function (t) {
+      layers[t].classList.toggle('ink-hidden', hidden);
+    });
     // A recognised scribble lights the eraser, but only on the panel: the tool
     // itself has to stay the pen, or the stroke being drawn would be cut off.
     var shown = armed ? 'eraser' : tool;
@@ -536,6 +616,11 @@
     panel.querySelectorAll('[data-colour]').forEach(function (b) {
       b.classList.toggle('active', b.dataset.colour === colour);
     });
+    // The first swatch is the one that changes colour with the tool.
+    var first = panel.querySelector('[data-colour="' + COLOURS[0][1] + '"]');
+    var black = tool !== 'highlighter';
+    first.style.color = black ? COLOURS[0][1] : HIGHLIGHT;
+    first.title = black ? COLOURS[0][0] : 'Yellow';
     var act = function (name) { return panel.querySelector('[data-act="' + name + '"]'); };
     act('undo').disabled = !(undos[key] || []).length;
     act('redo').disabled = !(redos[key] || []).length;
@@ -603,13 +688,31 @@
       '<hr>' +
       button('data-act', 'undo', 'Undo (⌘Z)') +
       button('data-act', 'redo', 'Redo (⇧⌘Z)') +
-      button('data-act', 'clear', 'Clear this slide');
+      button('data-act', 'clear', 'Clear this slide (⇧ for the whole deck)') +
+      '<hr>' +
+      button('data-act', 'download', 'Save the deck’s annotations to a file') +
+      button('data-act', 'upload', 'Load annotations from a file');
+
+    // The file to load is chosen with an input the panel keeps out of sight;
+    // its button clicks it.
+    picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = 'application/json,.json';
+    picker.style.display = 'none';
+    picker.addEventListener('change', function () {
+      if (picker.files[0]) upload(picker.files[0]);
+      picker.value = '';  // so the same file can be loaded twice
+    });
+    panel.appendChild(picker);
 
     toggle = document.createElement('button');
     toggle.className = 'ink-toggle ink-pen';
-    toggle.title = 'Annotate (d)';
+    toggle.title = 'Annotate (d), hide the ink (v)';
     toggle.innerHTML = icon('pen');
-    toggle.addEventListener('click', function () { open(!tool); });
+    toggle.addEventListener('click', function () {
+      if (hidden) return hide(false);  // parked ink comes back before anything else
+      open(!tool);
+    });
 
     var full = document.createElement('button');
     full.className = 'ink-toggle';
@@ -643,7 +746,11 @@
       } else if (b.dataset.act === 'redo') {
         step(redos, undos);
       } else if (b.dataset.act === 'clear') {
-        clear();
+        clear(e.shiftKey);
+      } else if (b.dataset.act === 'download') {
+        download();
+      } else if (b.dataset.act === 'upload') {
+        picker.click();
       }
       sync();
     });
@@ -664,6 +771,10 @@
     Reveal.addKeyBinding(
       { keyCode: 68, key: 'D', description: 'Toggle drawing tools' },
       function () { open(!tool); }
+    );
+    Reveal.addKeyBinding(
+      { keyCode: 86, key: 'V', description: 'Hide/show the annotations' },
+      function () { hide(!hidden); }
     );
 
     // Capture phase, so Escape closes the panel instead of opening the overview.

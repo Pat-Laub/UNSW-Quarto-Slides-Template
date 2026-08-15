@@ -46,6 +46,11 @@ $ink-button-size: 34px !default;
   .ink-fading {
     opacity: 0.3;
   }
+
+  // Parked by the V key: the ink is still there, just not on show.
+  &.ink-hidden {
+    display: none;
+  }
 }
 
 // What the pen, the highlighter and the eraser are all actually drawn on: one
