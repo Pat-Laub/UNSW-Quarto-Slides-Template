@@ -54,18 +54,21 @@ $ink-button-size: 34px !default;
 }
 
 // What the pen, the highlighter and the eraser are all actually drawn on: one
-// box over both layers, matching them exactly (see build() in annotate.js for
-// why the input is not taken on the layers themselves). It only takes the
-// pointer while a tool is out, so the slide's own links stay clickable.
+// box over the whole deck, a sibling of `.slides` rather than a child of it
+// (see build() in annotate.js for why). It only takes the pointer while a tool
+// is out, so the slide's own links stay clickable.
 //
 // `touch-action` is the whole point of it: without it the browser claims a
 // stylus or finger drag for scrolling and the stroke never happens. The
 // selection properties are the same idea for a pen on iPadOS, which otherwise
 // reads a drag over text as selecting it.
+//
+// The z-index is tldraw's: above `.slides`, which reveal puts at 1, and below
+// the arrows and the tool panel, so both stay usable with a tool in hand.
 .reveal .ink-surface {
   position: absolute;
-  inset: -100%;
-  z-index: 14;
+  inset: 0;
+  z-index: 10;
   pointer-events: none;
   touch-action: none;
   user-select: none;

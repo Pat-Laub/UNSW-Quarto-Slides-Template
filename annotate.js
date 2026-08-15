@@ -95,6 +95,8 @@
   var layers = {};           // one SVG per drawing tool; see build()
   var view;                  // every layer's viewBox, in slide coordinates
   var pen = false;           // a pen has been used, so fingers are not ink
+  var pointers = false;      // pointer events arrive here, so touches are ignored
+  var touching = null;       // identifier of the touch a stroke is being drawn with
   var hovers = 0;            // consecutive hovering mouse moves; see hover()
   var W, H, surface, panel, picker, toggle, saveTimer;
 
@@ -353,7 +355,10 @@
   // overscanned layer rather than the slide, so a point outside the slide maps
   // outside [0, W] x [0, H] — which is what it is.
   function at(e) {
-    var r = surface.getBoundingClientRect();
+    // Measured against the pen layer, not the surface: the layer is the thing
+    // inside `.slides` that reveal scales, so its box is what puts a point on
+    // the slide. The surface is only there to be touched.
+    var r = layers.pen.getBoundingClientRect();
     return [
       Math.round((view[0] + (e.clientX - r.left) / r.width * view[2]) * 10) / 10,
       Math.round((view[1] + (e.clientY - r.top) / r.height * view[3]) * 10) / 10,
@@ -443,6 +448,66 @@
     live.stroke.p = live.stroke.p.concat(points(e));
     live.el.setAttribute('d', pathData(live.stroke, true));
     scribble();
+  }
+
+  /* --------------------------- drawing from touch ------------------------ */
+
+  // A second way in, for a browser that hands the surface touch events without
+  // ever sending it a pointer event. iPadOS does exactly that — which is why
+  // the chalkboard plugin this replaced drew from touches — and an Apple
+  // Pencil on an iPad is what this whole tool is for.
+  //
+  // Only ever one of the two paths runs. Pointer events for a gesture are
+  // dispatched before its touch events, so the first pointerdown to arrive
+  // switches this off for the rest of the session; where pointer events work,
+  // these handlers never do anything.
+  function touchDown(e) {
+    if (pointers || touching !== null) return;
+    var t = e.changedTouches[0];
+    if (t.touchType === 'stylus') pen = true;
+    if (pen && t.touchType !== 'stylus') return;  // a palm, or a swipe
+    touching = t.identifier;
+    down(asPointer(e, t));
+  }
+
+  function touchMove(e) {
+    var t = pointers ? null : sameTouch(e);
+    if (t) move(asPointer(e, t));
+  }
+
+  function touchUp(e) {
+    var t = pointers ? null : sameTouch(e);
+    if (!t) return;
+    touching = null;
+    up(asPointer(e, t));
+  }
+
+  function sameTouch(e) {
+    if (touching === null) return null;
+    for (var i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === touching) return e.changedTouches[i];
+    }
+    return null;
+  }
+
+  // A Touch dressed as the pointer event the drawing code above expects. The
+  // touch event it came from has already been prevented and stopped, so the
+  // two methods have nothing left to do; `pointerId` is missing, which is what
+  // makes the pointer capture in down() fail harmlessly.
+  function asPointer(e, t) {
+    return {
+      clientX: t.clientX,
+      clientY: t.clientY,
+      // Apple Pencil reports its pressure as force; a finger reports none, and
+      // half is what a mouse reads while it is down.
+      pressure: t.force > 0 ? t.force : 0.5,
+      pointerType: t.touchType === 'stylus' && t.force > 0 ? 'pen' : 'touch',
+      button: 0,
+      buttons: 1,
+      altKey: e.altKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey,
+      preventDefault: function () {},
+      stopPropagation: function () {}
+    };
   }
 
   function up(e) {
@@ -647,19 +712,20 @@
       layers[t] = el;
     });
 
-    // The layers paint; a plain box over them takes the input. That box is an
-    // ordinary <div> because a touch has to land on one: WebKit does not apply
-    // `touch-action` to an <svg>, so on an iPad the browser claimed every
-    // stylus and finger drag on the layer as a scroll or a text selection and
-    // cancelled the stroke before it had started. A div with `touch-action:
-    // none` is the path every drawing surface on the web takes. It is laid out
-    // exactly like the layers, so `at()` maps a point on it into slide
-    // coordinates the same way, and its z-index puts it above both of them.
+    // The layers paint; a plain box over the deck takes the input. It is a
+    // <div> rather than the layers themselves because a touch has to land on
+    // one, and it hangs off `.reveal` rather than `.slides` because that is
+    // where both of the drawing tools that work with a pencil on an iPad put
+    // theirs — the chalkboard plugin's canvas and tldraw's. Inside `.slides` it
+    // would be under an ancestor with `pointer-events: none` and a `perspective`,
+    // which is not somewhere a touch is reliably delivered on iPadOS. Nothing
+    // is lost by leaving: `at()` measures the pen layer, and `.slides` covers
+    // the whole deck anyway.
     surface = document.createElement('div');
     surface.className = 'ink-surface';
-    slides.insertBefore(surface, slides.firstChild);
+    Reveal.getRevealElement().appendChild(surface);
 
-    surface.addEventListener('pointerdown', down);
+    surface.addEventListener('pointerdown', function (e) { pointers = true; down(e); });
     surface.addEventListener('pointermove', move);
     surface.addEventListener('pointerup', up);
     surface.addEventListener('pointercancel', up);
@@ -677,11 +743,13 @@
     // Pointer events are dispatched ahead of touch events and are not
     // suppressed by this, so reveal still gets to read a finger as a swipe
     // (see down(), which leaves those alone once a pen has been used).
-    ['touchstart', 'touchmove', 'touchend'].forEach(function (type) {
+    var touch = { touchstart: touchDown, touchmove: touchMove, touchend: touchUp, touchcancel: touchUp };
+    Object.keys(touch).forEach(function (type) {
       surface.addEventListener(type, function (e) {
         if (!tool) return;
         if (live || erasing) e.stopPropagation();
         if (e.cancelable) e.preventDefault();
+        touch[type](e);
       }, { passive: false });
     });
     // Safari's own pinch and rotate, which have nothing to do on a slide.
