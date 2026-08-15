@@ -81,6 +81,7 @@
   var colour = COLOURS[0][1];
   var live = null;           // { stroke, el } while a stroke is being drawn
   var erasing = false;       // an eraser drag is in progress
+  var held = null;           // the tool the right button borrowed the eraser from
   var armed = false;         // the live stroke has been recognised as a scribble
   var marked = [];           // strokes the eraser or scribble takes when let go
   var nodes = new WeakMap(); // stroke -> its <path>, for the fade preview
@@ -319,12 +320,21 @@
   }
 
   function down(e) {
-    if (!tool || e.button) return;  // ignore right/middle clicks
+    if (!tool) return;
+    // Hold the right button — or the barrel button a stylus reports as one, or
+    // the inverted end of a pen, which is button 5 — and it erases for as long
+    // as it is held: scribble over what is to go, let go, and the tool that was
+    // in hand comes back. Erasing is already two steps (what the drag passes
+    // over fades, and goes when the drag ends), so a slip costs nothing.
+    var borrowed = e.button === 2 || e.button === 5;
+    if (e.button && !borrowed) return;      // middle click, and anything else
+    if (borrowed && (live || erasing)) return;  // a stroke is already in progress
     e.preventDefault();
     e.stopPropagation();            // keep reveal from reading the drag as a swipe
     svg.setPointerCapture(e.pointerId);
+    if (borrowed) { held = tool; tool = 'eraser'; }
     var p = at(e);
-    if (tool === 'eraser') { erasing = true; marked = []; erase(p[0], p[1]); return; }
+    if (tool === 'eraser') { erasing = true; marked = []; erase(p[0], p[1]); sync(); return; }
     snapshot();
     var stroke = { t: tool, c: colour, s: e.pointerType !== 'pen', p: [p] };
     (ink[slideKey()] = ink[slideKey()] || []).push(stroke);
@@ -349,13 +359,17 @@
     if (erasing) {
       erasing = false;
       if (marked.length) rub();
-      return;
+    } else if (live) {
+      if (marked.length) {
+        rub();
+      } else {
+        live.el.setAttribute('d', pathData(live.stroke));  // close off the tapered end
+        live = null;
+        save();
+      }
     }
-    if (!live) return;
-    if (marked.length) return rub();
-    live.el.setAttribute('d', pathData(live.stroke));  // close off the tapered end
-    live = null;
-    save();
+    // Whatever the eraser was borrowed from is picked back up on release.
+    if (held) { tool = held; held = null; sync(); }
   }
 
   /* ---------------------------- scribble to erase ------------------------- */
@@ -520,6 +534,9 @@
     svg.addEventListener('pointermove', move);
     svg.addEventListener('pointerup', up);
     svg.addEventListener('pointercancel', up);
+    // The right button is the eraser here, so it has no menu to bring up — one
+    // would land mid-stroke and interrupt the erase it was part of.
+    svg.addEventListener('contextmenu', function (e) { if (tool) e.preventDefault(); });
     // Reveal reads touch drags on its root element as swipe navigation; while a
     // tool is active the drag is a stroke, so keep those events to ourselves.
     ['touchstart', 'touchmove'].forEach(function (type) {
@@ -537,7 +554,7 @@
       '<hr>' +
       button('data-tool', 'pen', 'Pen') +
       button('data-tool', 'highlighter', 'Highlighter') +
-      button('data-tool', 'eraser', 'Eraser (erases whole strokes)') +
+      button('data-tool', 'eraser', 'Eraser (whole strokes; or hold the right button)') +
       '<hr>' +
       button('data-act', 'undo', 'Undo (⌘Z)') +
       button('data-act', 'redo', 'Redo (⇧⌘Z)') +
