@@ -15,9 +15,17 @@ quarto use template Pat-Laub/UNSW-Quarto-Slides-Template
 ```
 
 in an empty directory.
-This downloads just the files you need to start a new set of slides: `template.qmd`, `custom.scss`, `reveal-fixes.html`, `annotate.js`, `perfect-freehand.min.js` and `unsw-logo.png`.
+This downloads just the files you need to start a new set of slides: `template.qmd`, `custom.scss`, `annotate.scss`, `reveal-fixes.html`, `annotate.js`, `perfect-freehand.min.js`, `unsw-logo.png` and `scripts/print_slides_pdfs.py`.
 
 Then render the slides with `quarto render template.qmd`, or use the Render button in RStudio or VS Code (with the Quarto extension).
+
+## PDF slides
+
+```bash
+python scripts/print_slides_pdfs.py
+```
+
+turns `template.html` into `template.pdf`. It loads the deck in headless Chrome with reveal.js's own `?print-pdf` view, so the text and figures stay vector rather than being screenshotted, and the presentation controls stay out of the PDF.
 
 ## Drawing on the slides
 
@@ -27,6 +35,7 @@ Annotations are saved in the browser, so they survive a reload and are still the
 
 You can also rub something out without putting the pen down: scribble back and forth across it and it goes when you lift the pen.
 The ink that will go fades as you scribble, so you can see what you are about to take; one undo brings it back.
+The eraser works the same way: what you pass over fades, and goes when you lift.
 Only ink of the same colour drawn with the same tool is erased this way, and a scribble over empty slide is just a scribble.
 
 This is `annotate.js`, which uses [perfect-freehand](https://github.com/steveruizok/perfect-freehand) (MIT) to shape the strokes; it replaces the reveal.js chalkboard plugin.

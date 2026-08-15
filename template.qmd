@@ -5,9 +5,13 @@ author: Dr Patrick Laub
 date: today
 format:
   revealjs:
-    theme: [serif, custom.scss]
+    theme: [serif, custom.scss, annotate.scss]
     controls: true
     controls-tutorial: true
+    # Keep both slide arrows together in the bottom-right corner, clear of the
+    # annotation panel on the right edge.
+    controls-layout: bottom-right
+    controls-back-arrows: visible
     logo: unsw-logo.png
     slide-number: c/t
     # Slightly wider than Quarto's 1050 default (height and margin are already

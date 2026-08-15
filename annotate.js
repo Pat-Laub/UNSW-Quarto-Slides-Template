@@ -72,9 +72,8 @@
   var colour = COLOURS[0][1];
   var live = null;           // { stroke, el } while a stroke is being drawn
   var erasing = false;       // an eraser drag is in progress
-  var erased = false;        // ... and it has already removed something
   var armed = false;         // the live stroke has been recognised as a scribble
-  var marked = [];           // ... and these strokes are to go when it is let go
+  var marked = [];           // strokes the eraser or scribble takes when let go
   var nodes = new WeakMap(); // stroke -> its <path>, for the fade preview
   var thinned = new WeakMap();// stroke -> its simplified points
   var layers = {};           // one SVG per drawing tool; see build()
@@ -260,15 +259,17 @@
     save();
   }
 
+  // Marks rather than deletes: what the eraser has passed over fades, and only
+  // goes when the eraser is lifted — the same two steps as the scribble
+  // gesture, so a slip can be seen and undone before it costs anything.
   function erase(x, y) {
-    var key = slideKey(), before = ink[key] || [];
-    var after = before.filter(function (s) { return !touches(s, x, y); });
-    if (after.length === before.length) return;
-    if (!erased) snapshot();  // one undo entry per eraser drag, not per stroke
-    erased = true;
-    ink[key] = after;
-    render();
-    save();
+    strokes().forEach(function (s) {
+      if (marked.indexOf(s) !== -1 || !touches(s, x, y)) return;
+      if (!marked.length) snapshot();  // one undo entry per drag, not per stroke
+      marked.push(s);
+      var el = nodes.get(s);
+      if (el) el.classList.add('ink-fading');
+    });
   }
 
   function read() {
@@ -311,7 +312,7 @@
     e.stopPropagation();            // keep reveal from reading the drag as a swipe
     svg.setPointerCapture(e.pointerId);
     var p = at(e);
-    if (tool === 'eraser') { erasing = true; erased = false; erase(p[0], p[1]); return; }
+    if (tool === 'eraser') { erasing = true; marked = []; erase(p[0], p[1]); return; }
     snapshot();
     var stroke = { t: tool, c: colour, s: e.pointerType !== 'pen', p: [p] };
     (ink[slideKey()] = ink[slideKey()] || []).push(stroke);
@@ -333,7 +334,11 @@
   }
 
   function up() {
-    erasing = false;
+    if (erasing) {
+      erasing = false;
+      if (marked.length) rub();
+      return;
+    }
     if (!live) return;
     if (marked.length) return rub();
     live.el.setAttribute('d', pathData(live.stroke));  // close off the tapered end
@@ -383,11 +388,12 @@
     });
   }
 
-  // The snapshot taken when the scribble began is already the state to come
-  // back to — the ink still there, and nothing scribbled over it — so this
-  // deletes without taking another: one undo puts everything back at once.
+  // Takes away everything currently marked — by a scribble, or by an eraser
+  // drag. The snapshot taken when the gesture began is already the state to
+  // come back to, so this deletes without taking another: one undo puts
+  // everything back at once.
   function rub() {
-    var gone = marked.concat([live.stroke]);
+    var gone = live ? marked.concat([live.stroke]) : marked;
     ink[slideKey()] = strokes().filter(function (s) { return gone.indexOf(s) === -1; });
     armed = false;
     marked = [];
@@ -404,7 +410,8 @@
     eraser: '<path d="M15.6 4.4l4 4a1.6 1.6 0 0 1 0 2.2l-7.5 7.5a1.6 1.6 0 0 1-2.2 0l-4-4a1.6 1.6 0 0 1 0-2.2l7.5-7.5a1.6 1.6 0 0 1 2.2 0z"/><path d="M9 20h11"/>',
     undo: '<path d="M4.5 9.5h10a4.5 4.5 0 0 1 0 9H9"/><path d="M8 5.5l-4 4 4 4"/>',
     redo: '<path d="M19.5 9.5h-10a4.5 4.5 0 0 0 0 9H15"/><path d="M16 5.5l4 4-4 4"/>',
-    clear: '<path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 12.5h9L17.5 7"/>'
+    clear: '<path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 12.5h9L17.5 7"/>',
+    fullscreen: '<path d="M4 9V4h5"/><path d="M15 4h5v5"/><path d="M20 15v5h-5"/><path d="M9 20H4v-5"/>'
   };
 
   function icon(name) {
@@ -415,6 +422,21 @@
   function button(attr, name, title) {
     return '<button class="ink-btn" ' + attr + '="' + name + '" title="' + title + '">' +
       icon(name) + '</button>';
+  }
+
+  // Expands the element reveal's own F shortcut expands, so the two agree about
+  // what "full screen" means; unlike reveal's, this one also comes back out.
+  function fullscreen() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+      return;
+    }
+    var view = Reveal.getViewportElement();
+    var el = Reveal.getConfig().embedded ? view : view.parentElement;
+    var req = el.requestFullscreen || el.webkitRequestFullscreen ||
+      el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req) req.call(el);
   }
 
   function open(on) {
@@ -513,13 +535,24 @@
     toggle.className = 'ink-toggle';
     toggle.title = 'Annotate (d)';
     toggle.innerHTML = icon('pen');
-    // Sit clear of the menu plugin's button, which shares this corner.
-    if (document.querySelector('.slide-menu-button')) toggle.classList.add('ink-offset');
     toggle.addEventListener('click', function () { open(!tool); });
+
+    var full = document.createElement('button');
+    full.className = 'ink-toggle';
+    full.title = 'Full screen (f)';
+    full.innerHTML = icon('fullscreen');
+    full.addEventListener('click', fullscreen);
+
+    var launchers = document.createElement('div');
+    launchers.className = 'ink-launchers';
+    // Sit clear of the menu plugin's button, which shares this corner.
+    if (document.querySelector('.slide-menu-button')) launchers.classList.add('ink-offset');
+    launchers.appendChild(full);
+    launchers.appendChild(toggle);
 
     var parent = Reveal.getRevealElement();
     parent.appendChild(panel);
-    parent.appendChild(toggle);
+    parent.appendChild(launchers);
 
     panel.addEventListener('click', function (e) {
       var b = e.target.closest('[data-tool],[data-act],[data-colour]');

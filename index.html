@@ -128,7 +128,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Reveal.js slides can be progressed by pressing the spacebar key, or by clicking on the arrows at the edge of the slide.</p>
+<p>Reveal.js slides can be progressed by pressing the spacebar key, or by clicking on the arrows in the bottom-right corner of the slide.</p>
 </div>
 </div>
 <div class="callout callout-style-default callout-warning callout-titled">
@@ -141,7 +141,7 @@ Warning
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Quarto creates HTML slides, and converting these to PDF is slightly clunky. I use the <a href="https://github.com/astefanutti/decktape">decktape</a> tool, calling <code>decktape template.html template.pdf</code>, to create <a href="template.pdf">PDF slides</a>. This normally works well, though all interactivity in the HTML will be discarded.</p>
+<p>Quarto creates HTML slides, and converting these to PDF is slightly clunky. Running <code>python scripts/print_slides_pdfs.py</code> loads the deck in headless Chrome using reveal.js’s own <code>?print-pdf</code> view to create <a href="template.pdf">PDF slides</a>. All interactivity in the HTML is discarded, but the text and figures stay vector rather than being screenshotted.</p>
 </div>
 </div>
 

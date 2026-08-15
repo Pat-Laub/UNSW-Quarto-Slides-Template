@@ -1,0 +1,196 @@
+/*-- scss:defaults --*/
+
+// Styling for annotate.js: the ink layer, the tool panel that sits in the
+// yellow bar, and the corner buttons that share reveal's bottom-left row.
+// Loaded after custom.scss, whose $mainColor, $link-color and $bar-width it
+// uses.
+
+$ink-accent: #2668c7 !default;
+$ink-panel-width: 44px !default;
+$ink-button-size: 34px !default;
+
+/*-- scss:rules --*/
+
+// The ink lives inside `.reveal .slides`, so reveal's slide transform scales it
+// and stored strokes stay in slide coordinates. There are two layers, because
+// reveal puts the current slide's content at `z-index: 11` and the two tools
+// want opposite sides of it:
+//
+//   * the pen sits above everything (and, being the topmost layer, is the one
+//     that receives all the pointer input, for both tools and the eraser);
+//   * the highlighter goes just below the pen and multiplies with the slide, so
+//     text keeps its own colour rather than being washed out by a 40% overlay.
+//     Blending has to be set on the layer, not on its paths: `z-index` makes
+//     each layer a stacking context, which would leave a path with nothing but
+//     its sibling strokes to blend with. Layer-wide opacity also stops
+//     overlapping highlighter strokes from compounding into dark blotches.
+.reveal .ink-layer {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  touch-action: none; // never let the browser take a drag for scrolling
+  z-index: 13;
+
+  &.drawing {
+    pointer-events: auto;
+    cursor: crosshair;
+  }
+
+  &.ink-highlighter {
+    z-index: 12;
+    opacity: 0.4;
+    mix-blend-mode: multiply;
+  }
+
+  // Ink that is about to go — passed over by the eraser, or crossed by a
+  // scribble — shown faded until the tool is lifted and it actually goes.
+  .ink-fading {
+    opacity: 0.3;
+  }
+}
+
+.reveal .ink-panel {
+  position: fixed;
+  top: 50%;
+  // Centred on the yellow bar, which custom.scss narrows with the window; the
+  // floor only stops the panel running off the edge once the bar is narrower
+  // than the panel itself.
+  right: max(0px, calc((var(--bar-width, #{$bar-width}) - #{$ink-panel-width}) / 2));
+  transform: translateY(-50%);
+  z-index: 45;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: $ink-panel-width;
+  padding: 5px 0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+
+  &.active {
+    display: flex;
+  }
+
+  hr {
+    width: 22px;
+    height: 1px;
+    margin: 4px 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.15);
+  }
+}
+
+.reveal .ink-btn,
+.reveal .ink-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: $ink-button-size;
+  height: $ink-button-size;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: $mainColor;
+  cursor: pointer;
+  -webkit-appearance: none;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.07);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.reveal .ink-btn.active {
+  background: $ink-accent;
+  color: #fff;
+}
+
+.reveal .ink-btn[disabled] {
+  opacity: 0.25;
+  background: transparent;
+  cursor: default;
+}
+
+// Each swatch shows its colour as a dot; the button's `color` is set inline by
+// annotate.js, so the dot and its selection ring both just use currentColor.
+.reveal .ink-swatch::before {
+  content: "";
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.reveal .ink-swatch.active::before {
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px currentColor;
+}
+
+// Full screen and the pen, in a row continuing reveal's bottom-left corner from
+// the menu plugin's hamburger. That button is 2.2rem inset 8px from the corner,
+// so matching its footprint and offsetting by its width leaves all three
+// reading as one control row; its artwork sits a little above the bottom of its
+// inline box, which is what the 13px (rather than 8px) lifts our icons to meet.
+.reveal .ink-launchers {
+  position: fixed;
+  left: 8px;
+  bottom: 13px;
+  z-index: 30;
+  display: flex;
+  gap: 4px;
+
+  &.ink-offset {
+    left: calc(8px + 2.2rem + 8px);
+  }
+}
+
+.reveal .ink-toggle {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $link-color; // the colour Quarto gives its other corner buttons
+  cursor: pointer;
+
+  // Deep enough to read as pressed next to the other two corner buttons,
+  // without leaving their colour family.
+  &.active {
+    color: var(--r-link-color-dark);
+  }
+
+  // 28px, not the 26px the icons are drawn at, so their strokes carry the same
+  // weight as the menu plugin's 2.2rem hamburger beside them.
+  svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+// Keep the annotation controls out of PDF exports (they are presentation
+// controls, not content): `.print-pdf` covers reveal's print view, which is
+// what scripts/print_slides_pdfs.py captures. The ink layer goes with them:
+// there is one layer showing one slide's strokes, so in the stacked print
+// layout it would land on whichever slide happened to be current. Overview mode
+// is the same story — one layer, a whole grid of slides — so hide it there too.
+.print-pdf,
+.reveal.overview {
+  .ink-panel,
+  .ink-launchers,
+  .ink-layer {
+    display: none !important;
+  }
+}
+@media print {
+  .ink-panel,
+  .ink-launchers,
+  .ink-layer {
+    display: none !important;
+  }
+}
