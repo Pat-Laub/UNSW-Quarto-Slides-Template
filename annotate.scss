@@ -67,8 +67,15 @@ $ink-button-size: 34px !default;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 
+  // No cursor by default, and a crosshair only once a mouse has moved across
+  // the slide: see hover() in annotate.js, and the Apple Pencil over Sidecar
+  // that the two of them are for.
   &.drawing {
     pointer-events: auto;
+    cursor: none;
+  }
+
+  &.drawing.ink-hover {
     cursor: crosshair;
   }
 }

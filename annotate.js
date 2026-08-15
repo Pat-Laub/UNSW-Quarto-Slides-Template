@@ -89,6 +89,7 @@
   var layers = {};           // one SVG per drawing tool; see build()
   var view;                  // every layer's viewBox, in slide coordinates
   var pen = false;           // a pen has been used, so fingers are not ink
+  var hovers = 0;            // consecutive hovering mouse moves; see hover()
   var W, H, surface, panel, toggle, saveTimer;
 
   /* ------------------------------ stroke maths --------------------------- */
@@ -337,6 +338,7 @@
     if (borrowed && (live || erasing)) return;  // a stroke is already in progress
     e.preventDefault();
     e.stopPropagation();            // keep reveal from reading the drag as a swipe
+    unhover();                      // nothing to point with while the tip is down
     // A stroke survives the pointer leaving the surface; nothing else in the
     // deck wants the events, so carrying on without capture is no worse.
     try { surface.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
@@ -354,7 +356,25 @@
     sync();
   }
 
+  // The crosshair is a mouse's, and it only appears once a mouse has really
+  // moved. An Apple Pencil driving a Mac over Sidecar arrives as a mouse that
+  // is nowhere at all until the tip touches the glass, and macOS shows the
+  // cursor for each of those contacts: a crosshair blinking on and off at the
+  // start and end of every stroke. A mouse hovers — a stream of moves with no
+  // button held — where a pen contact produces at most a stray one, so two in a
+  // row is the difference between them. Pens and fingers never bring it back.
+  function hover(e) {
+    if (e.pointerType !== 'mouse' || e.buttons || hovers >= 2) return;
+    if (++hovers === 2) surface.classList.add('ink-hover');
+  }
+
+  function unhover() {
+    hovers = 0;
+    surface.classList.remove('ink-hover');
+  }
+
   function move(e) {
+    hover(e);
     if (!live && !erasing) return;
     // Reveal navigates on a pointer drag as well as on a touch swipe, and it
     // reads every move, not just the ones that follow a pointerdown it saw. A
@@ -369,6 +389,7 @@
   function up(e) {
     var drawn = live || erasing;
     if (drawn) e.stopPropagation();
+    unhover();  // a lifted pen leaves no cursor behind; a mouse moves on
     if (erasing) {
       erasing = false;
       if (marked.length) rub();
