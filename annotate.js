@@ -32,13 +32,40 @@
     ['Green', '#0f9d58'], ['Orange', '#e8710a']
   ];
 
-  // perfect-freehand options per tool, in slide coordinates. `thinning` is how
-  // much pressure narrows the line: the pen tapers like a real nib, while the
-  // highlighter is a constant-width chisel.
+  // How wide each tool draws, in slide coordinates. The ../scribble deck's own
+  // widths are these divided by 3.2: its proportions were right — both tools
+  // wanted the same step up — but its weights were set for a tablet held in the
+  // hand, and these were set by eye for the deck as it is presented.
+  var WIDTHS = { pen: 12.4, highlighter: 86 };
+
+  // The rest of what perfect-freehand needs, which is what gives a stroke its
+  // shape rather than its weight: how far pressure narrows it, how much the
+  // input is smoothed and how far it lags the tip. Taken from the ../scribble
+  // deck, and unlike the widths they came over as they stood.
+  //
+  // The pen carries a second set for a device with no pressure of its own,
+  // where perfect-freehand guesses it from how fast the stroke is drawn; that
+  // guess suits a narrower nib, so `share` takes it to 0.62 of the width above.
   var TOOLS = {
-    pen: { size: 5, thinning: 0.6, smoothing: 0.5, streamline: 0.45 },
-    highlighter: { size: 28, thinning: 0, smoothing: 0.6, streamline: 0.55 }
+    pen: {
+      thinning: 0.62, smoothing: 0.62, streamline: 0.62,
+      easing: function (t) { return t * 0.65 + Math.sin(t * Math.PI / 2) * 0.35; },
+      simulated: {
+        share: 0.62, thinning: 0.5, smoothing: 0.62, streamline: 0.64,
+        easing: function (t) { return Math.sin(t * Math.PI / 2); }
+      }
+    },
+    highlighter: { thinning: 0, smoothing: 0.5, streamline: 0.5 }
   };
+
+  // The widths above are a starting point, not the last word: how thick a line
+  // has to be depends on the room and the projector, and neither is known here.
+  // The panel's − and + take the tool in hand between these multiples of its
+  // width, and what they settle on is kept in localStorage — as a width rather
+  // than as a multiple, so that changing the defaults above never compounds
+  // with a choice already made — for every deck on the device.
+  var NIB = { min: 0.25, max: 3, step: 1.25 };
+  var WIDTH_STORE = 'reveal-ink-width';
 
   // Black ink is black, but a black *highlighter* is a grey smear over the
   // words it is meant to pick out. The first swatch draws — and shows itself
@@ -80,6 +107,7 @@
 
   // A stroke is { t: tool, c: colour, s: simulate-pressure, p: [[x, y, pressure], ...] }.
   var ink = read();          // { slideKey: [stroke, ...] }
+  var widths = readWidths(); // { tool: width }, as left by the panel's − and +
   var undos = {}, redos = {};// { slideKey: [JSON snapshot, ...] }
   var tool = null;           // active tool; null exactly when the panel is closed
   var lastTool = 'pen';      // restored when the panel is reopened
@@ -95,6 +123,7 @@
   var layers = {};           // one SVG per drawing tool; see build()
   var view;                  // every layer's viewBox, in slide coordinates
   var pen = false;           // a pen has been used, so fingers are not ink
+  var stylus = false;        // the stroke in hand has a pressure of its own
   var pointers = false;      // pointer events arrive here, so touches are ignored
   var touching = null;       // identifier of the touch a stroke is being drawn with
   var hovers = 0;            // consecutive hovering mouse moves; see hover()
@@ -106,9 +135,12 @@
   // path of quadratic curves through the midpoints, which rounds the corners.
   function pathData(stroke, unfinished) {
     var o = TOOLS[stroke.t];
+    if (stroke.s && o.simulated) o = o.simulated;
     var pts = getStroke(stroke.p, {
-      size: o.size, thinning: o.thinning, smoothing: o.smoothing,
-      streamline: o.streamline, simulatePressure: stroke.s, last: !unfinished
+      size: widths[stroke.t] * (o.share || 1),
+      thinning: o.thinning, smoothing: o.smoothing,
+      streamline: o.streamline, easing: o.easing,
+      simulatePressure: stroke.s, last: !unfinished
     });
     if (!pts.length) return '';
     var d = ['M', pts[0][0], pts[0][1], 'Q'];
@@ -135,7 +167,7 @@
   }
 
   function touches(stroke, x, y) {
-    var r = ERASER + TOOLS[stroke.t].size / 2, p = stroke.p;
+    var r = ERASER + widths[stroke.t] / 2, p = stroke.p;
     for (var i = 0; i < p.length; i++) {
       if (segDist(x, y, p[i], p[i + 1] || p[i]) <= r) return true;
     }
@@ -303,6 +335,31 @@
     try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; }
   }
 
+  function readWidths() {
+    var out = {}, saved;
+    try { saved = JSON.parse(localStorage.getItem(WIDTH_STORE)); } catch (e) { /* unreadable */ }
+    Object.keys(WIDTHS).forEach(function (t) {
+      out[t] = saved && saved[t] > 0 ? clampWidth(t, saved[t]) : WIDTHS[t];
+    });
+    return out;
+  }
+
+  function clampWidth(t, w) {
+    return Math.min(WIDTHS[t] * NIB.max, Math.max(WIDTHS[t] * NIB.min, w));
+  }
+
+  // One press of − or +. The ink already on the slide is redrawn at the new
+  // width along with everything drawn from here on: the point of the control is
+  // to see what a width looks like, and writing that is already there is the
+  // fastest way to see it. Nothing about the strokes themselves changes, so
+  // stepping back down puts them back as they were.
+  function resize(up) {
+    var w = widths[tool] * (up ? NIB.step : 1 / NIB.step);
+    widths[tool] = clampWidth(tool, Math.round(w * 10) / 10);
+    try { localStorage.setItem(WIDTH_STORE, JSON.stringify(widths)); } catch (e) { /* full or blocked */ }
+    render();
+  }
+
   function save() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function () {
@@ -362,8 +419,26 @@
     return [
       Math.round((view[0] + (e.clientX - r.left) / r.width * view[2]) * 10) / 10,
       Math.round((view[1] + (e.clientY - r.top) / r.height * view[3]) * 10) / 10,
-      Math.round(e.pressure * 100) / 100
+      Math.round(force(e) * 100) / 100
     ];
+  }
+
+  // Pressure, read the way the scribble deck reads it: a stylus's own force, a
+  // quarter more than it reports, since writing at what feels like an ordinary
+  // weight sits well below the middle of the range. Anything else reports the
+  // same number for the whole stroke, so it goes down the middle and
+  // perfect-freehand is left to guess the width from the speed instead.
+  function force(e) {
+    return stylus ? e.pressure * 1.25 : 0.5;
+  }
+
+  // The test for a device with pressure to give: it says it is a pen, or the
+  // pressure it reports is not one of the three fixed numbers a mouse or a
+  // finger gives (0, 0.5 while down, or 1). The second half catches an Apple
+  // Pencil driving a Mac over Sidecar, which arrives as a mouse.
+  function isStylus(e) {
+    return e.pointerType === 'pen' ||
+      (e.pressure > 0 && e.pressure < 0.5) || (e.pressure > 0.5 && e.pressure < 1);
   }
 
   // Pointer events are delivered at most once per frame, but the browser keeps
@@ -423,10 +498,13 @@
     // deck wants the events, so carrying on without capture is no worse.
     try { surface.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
     if (borrowed) { held = tool; tool = 'eraser'; }
+    // Decided once, from the contact that starts the stroke, and held for the
+    // rest of it: every point is then read the same way.
+    stylus = isStylus(e);
     var p = at(e);
     if (tool === 'eraser') { erasing = true; marked = []; erase(p[0], p[1]); sync(); return; }
     snapshot();
-    var stroke = { t: tool, c: inkColour(), s: e.pointerType !== 'pen', p: [p] };
+    var stroke = { t: tool, c: inkColour(), s: !stylus, p: [p] };
     (ink[slideKey()] = ink[slideKey()] || []).push(stroke);
     live = { stroke: stroke, el: pathFor(stroke, true) };
     nodes.set(stroke, live.el);
@@ -514,10 +592,12 @@
     return {
       clientX: t.clientX,
       clientY: t.clientY,
-      // Apple Pencil reports its pressure as force; a finger reports none, and
-      // half is what a mouse reads while it is down.
+      // Apple Pencil reports its pressure as force. A stylus is a pen whether
+      // or not a force came with it; where none did, half — what a mouse reads
+      // while it is down — gives the stroke an even, middling width rather
+      // than the taper a zero would.
       pressure: t.force > 0 ? t.force : 0.5,
-      pointerType: t.touchType === 'stylus' && t.force > 0 ? 'pen' : 'touch',
+      pointerType: t.touchType === 'stylus' ? 'pen' : 'touch',
       button: 0,
       buttons: 1,
       altKey: e.altKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey,
@@ -608,6 +688,8 @@
     pen: '<path d="M4 20l3.6-1L19.3 7.3a1.8 1.8 0 0 0 0-2.5l-1.1-1.1a1.8 1.8 0 0 0-2.5 0L4 15.4z"/><path d="M14.9 5.6l3.5 3.5"/>',
     highlighter: '<path d="M6.5 14.5l6-9.5 5.5 3.7-6.2 9.8H7.6z"/><path d="M4 21h16"/>',
     eraser: '<path d="M15.6 4.4l4 4a1.6 1.6 0 0 1 0 2.2l-7.5 7.5a1.6 1.6 0 0 1-2.2 0l-4-4a1.6 1.6 0 0 1 0-2.2l7.5-7.5a1.6 1.6 0 0 1 2.2 0z"/><path d="M9 20h11"/>',
+    thinner: '<path d="M5 12h14"/>',
+    thicker: '<path d="M12 5v14"/><path d="M5 12h14"/>',
     undo: '<path d="M4.5 9.5h10a4.5 4.5 0 0 1 0 9H9"/><path d="M8 5.5l-4 4 4 4"/>',
     redo: '<path d="M19.5 9.5h-10a4.5 4.5 0 0 0 0 9H15"/><path d="M16 5.5l4 4-4 4"/>',
     clear: '<path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 12.5h9L17.5 7"/>',
@@ -703,6 +785,12 @@
     first.style.color = black ? COLOURS[0][1] : HIGHLIGHT;
     first.title = black ? COLOURS[0][0] : 'Yellow';
     var act = function (name) { return panel.querySelector('[data-act="' + name + '"]'); };
+    // The width readout, and the − and + either side of it, belong to the tool
+    // in hand; with the eraser out there is nothing for them to step.
+    var drawing = !!TOOLS[tool];
+    panel.querySelector('.ink-nib text').textContent = drawing ? widths[tool].toFixed(1) : '';
+    act('thinner').disabled = !drawing || widths[tool] <= WIDTHS[tool] * NIB.min;
+    act('thicker').disabled = !drawing || widths[tool] >= WIDTHS[tool] * NIB.max;
     act('undo').disabled = !(undos[key] || []).length;
     act('redo').disabled = !(redos[key] || []).length;
     act('clear').disabled = !strokes().length;
@@ -732,7 +820,7 @@
     // <div> rather than the layers themselves because a touch has to land on
     // one, and it hangs off `.reveal` rather than `.slides` because that is
     // where both of the drawing tools that work with a pencil on an iPad put
-    // theirs — the chalkboard plugin's canvas and tldraw's. Inside `.slides` it
+    // theirs — the chalkboard plugin's canvas and scribble's. Inside `.slides` it
     // would be under an ancestor with `pointer-events: none` and a `perspective`,
     // which is not somewhere a touch is reliably delivered on iPadOS. Nothing
     // is lost by leaving: `at()` measures the pen layer, and `.slides` covers
@@ -770,9 +858,9 @@
         // means — scroll it, select the text under the tip, start a system
         // gesture — and having decided, it cancels the stream the stroke was
         // being built from. `touch-action: none` is not enough there; the
-        // touch events themselves have to be refused, as tldraw refuses them
-        // on the canvas it hands an Apple Pencil. Non-passive, or the browser
-        // is free to ignore the refusal.
+        // touch events themselves have to be refused, as the scribble deck
+        // refuses them on the canvas it hands an Apple Pencil. Non-passive, or
+        // the browser is free to ignore the refusal.
         if (type.indexOf('touch') === 0 && e.cancelable) e.preventDefault();
         input[type](e);
       }, { capture: true, passive: false });
@@ -799,6 +887,15 @@
       button('data-tool', 'pen', 'Pen') +
       button('data-tool', 'highlighter', 'Highlighter') +
       button('data-tool', 'eraser', 'Eraser (whole strokes; or hold the right button)') +
+      '<hr>' +
+      button('data-act', 'thinner', 'Thinner ([)') +
+      // The width between them, drawn in an SVG of its own like the icons
+      // rather than set as text: the panel then sizes it, instead of the deck's
+      // own type doing it at 40px in a 44px-wide rail.
+      '<svg class="ink-nib" width="34" height="15" viewBox="0 0 34 15" fill="currentColor" ' +
+      'opacity="0.6"><title>How wide the tool in hand draws, in slide units</title>' +
+      '<text x="17" y="12" text-anchor="middle" font-size="12"></text></svg>' +
+      button('data-act', 'thicker', 'Thicker (])') +
       '<hr>' +
       button('data-act', 'undo', 'Undo (⌘Z)') +
       button('data-act', 'redo', 'Redo (⇧⌘Z)') +
@@ -855,6 +952,8 @@
         tool = b.dataset.tool;
       } else if (b.dataset.act === 'close') {
         return open(false);
+      } else if (b.dataset.act === 'thinner' || b.dataset.act === 'thicker') {
+        resize(b.dataset.act === 'thicker');
       } else if (b.dataset.act === 'undo') {
         step(undos, redos);
       } else if (b.dataset.act === 'redo') {
@@ -898,6 +997,8 @@
         open(false);
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
         e.shiftKey ? step(redos, undos) : step(undos, redos);
+      } else if ((e.key === '[' || e.key === ']') && TOOLS[tool]) {
+        resize(e.key === ']');
       } else {
         return;
       }

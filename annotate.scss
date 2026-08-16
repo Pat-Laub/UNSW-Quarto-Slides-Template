@@ -63,8 +63,9 @@ $ink-button-size: 34px !default;
 // selection properties are the same idea for a pen on iPadOS, which otherwise
 // reads a drag over text as selecting it.
 //
-// The z-index is tldraw's: above `.slides`, which reveal puts at 1, and below
-// the arrows and the tool panel, so both stay usable with a tool in hand.
+// The z-index is the scribble deck's: above `.slides`, which reveal puts at 1,
+// and below the arrows and the tool panel, so both stay usable with a tool in
+// hand.
 .reveal .ink-surface {
   position: absolute;
   inset: 0;
