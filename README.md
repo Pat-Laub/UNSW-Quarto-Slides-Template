@@ -15,9 +15,7 @@ quarto use template Pat-Laub/UNSW-Quarto-Slides-Template
 ```
 
 in an empty directory.
-This downloads just the files you need to start a new set of slides: `template.qmd`, `custom.scss`, `annotate.scss`, `reveal-fixes.html`, `annotate.js`, `perfect-freehand.min.js`, `unsw-logo.png` and `scripts/print_slides_pdfs.py`.
-
-Then render the slides with `quarto render template.qmd`, or use the Render button in RStudio or VS Code (with the Quarto extension).
+This downloads just the files you need to start a new set of slides: `template.qmd`, `custom.scss`, `Then render the slides with `quarto render template.qmd`, or use the Render button in RStudio or VS Code (with the Quarto extension).
 
 ## PDF slides
 
@@ -40,7 +38,34 @@ The eraser works the same way: what you pass over fades, and goes when you lift.
 Only ink of the same colour drawn with the same tool is erased this way, and a scribble over empty slide is just a scribble.
 Holding the right mouse button — or the barrel button on a stylus — erases in the same two steps without switching tools, and hands back the pen when you let go.
 
-This is `annotate.js`, which uses [perfect-freehand](https://github.com/steveruizok/perfect-freehand) (MIT) to shape the strokes; it replaces the reveal.js chalkboard plugin.
-
+This is `
 The demo slides include a couple of Python code cells, so rendering them as-is requires the `jupyter`, `matplotlib` and `seaborn` Python packages.
 If you don't need Python, just delete those cells from `template.qmd`.
+
+## What this template is made of
+
+The fixed 16:9 slide stage, the reveal.js fixes and the freehand drawing tools
+are Quarto extensions, vendored here as git subtrees under `_extensions/`:
+
+- `Pat-Laub/slide-stage` — the authored 3744 x 2106 page and one uniform fit
+  transform, so a deck lays out identically on a laptop, a projector and an iPad
+- `Pat-Laub/scribble` — pen, highlighter, text, lasso, eraser and persistence
+
+`quarto use template` skips `_extensions` when it copies files and installs the
+extensions properly instead, so a new deck gets them without this repo's git
+plumbing. `custom.scss` is the UNSW look, supplied through the two hooks the
+stage exposes.
+
+## Testing
+
+```sh
+npm install
+npx playwright install chromium firefox webkit
+npm run render
+npm test        # chromium, firefox, webkit
+```
+
+The suite checks the deck a new user is handed: it loads with no failed
+requests, it is drawn on the shared stage in authored units, the UNSW rail and
+title artwork come through the stage hooks, the drawing tools draw, and the deck
+does not grow pages (which belongs to the blank pad, not a lecture deck).

@@ -1,0 +1,13 @@
+{
+  "name": "unsw-quarto-slides-template-tests",
+  "private": true,
+  "scripts": {
+    "render": "QUARTO_PYTHON=$PWD/.venv/bin/python quarto render template.qmd",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

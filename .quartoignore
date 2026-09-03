@@ -1,8 +1,11 @@
 # Files excluded when someone runs
 #   quarto use template Pat-Laub/UNSW-Quarto-Slides-Template
-# so they get a clean starting point: template.qmd, custom.scss, annotate.scss,
-# reveal-fixes.html, annotate.js, perfect-freehand.min.js, unsw-logo.png and
-# scripts/print_slides_pdfs.py.
+# so they get a clean starting point: template.qmd, custom.scss, unsw-logo.png
+# and scripts/print_slides_pdfs.py.
+#
+# The drawing tools and the slide stage are not listed: Quarto skips
+# `_extensions` when copying a template's files and installs the extensions
+# properly instead, so a new deck gets them without this repo's git plumbing.
 #
 # These are rendered copies of the template, committed only so that
 # GitHub Pages can serve them.

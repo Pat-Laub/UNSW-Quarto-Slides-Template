@@ -10,7 +10,7 @@
   <meta name="generator" content="quarto-1.10.18">
 
   <meta name="author" content="Dr Patrick Laub">
-  <meta name="dcterms.date" content="2026-08-15">
+  <meta name="dcterms.date" content="2026-09-03">
   <title>UNSW Slides Template</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -102,7 +102,7 @@
     code span.vs { color: #20794d; } /* VerbatimString */
     code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </style>
-  <link rel="stylesheet" href="template_files/libs/revealjs/dist/theme/quarto-3f46ca2673308fa5eb1fa236bf4d3d5f.css">
+  <link rel="stylesheet" href="template_files/libs/revealjs/dist/theme/quarto-f000120a3f15ca152cae2817e602d7a4.css">
   <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
   <script>document.addEventListener("DOMContentLoaded", function () {
  var mathElements = document.getElementsByClassName("math");
@@ -212,6 +212,152 @@
   </style>
 </head>
 <body class="quarto-light">
+<div class="deck-viewport-shell">
+<div class="deck-stage" data-deck-stage="">
+<script>
+(function () {
+  var stage = document.currentScript.parentElement;
+
+  // The title artwork belongs to the first slide only. Reveal is not up yet, so
+  // decide from the URL hash: no hash (or the root one) means we are opening on
+  // the title slide. Doing it here rather than waiting for Reveal's `ready`
+  // keeps the artwork from flashing behind a deep-linked slide on refresh.
+  (function () {
+    var hash = window.location.hash.replace(/^#\/?/, "");
+    if (hash === "" || hash === "0" || hash === "title-slide") {
+      stage.classList.add("deck-stage-title");
+    }
+  })();
+
+  // The authored page, read from the custom properties slide-stage.scss puts
+  // on this element so the stylesheet stays the single source of truth. Three
+  // times the old 1248 x 702 by default, so the deck lays out and rasterises at
+  // 4K and the fit transform below only ever shrinks it: Safari magnifies an
+  // already-rasterised layer rather than re-rendering it, which is what made
+  // any scale above 1 look soft. The fallbacks are that default, for the case
+  // where the stylesheet has not applied.
+  var authored = getComputedStyle(stage);
+  var DECK_W = parseFloat(authored.getPropertyValue('--deck-width')) || 3744;
+  var DECK_H = parseFloat(authored.getPropertyValue('--deck-height')) || 2106;
+  var PHONE_MAX = 600;
+
+  function viewportSize() {
+    var visual = window.visualViewport;
+    return {
+      width: visual ? visual.width : window.innerWidth,
+      height: visual ? visual.height : window.innerHeight
+    };
+  }
+
+  function fitForViewport(width, height) {
+    var rotate = width < height && width <= PHONE_MAX;
+    var fitW = rotate ? DECK_H : DECK_W;
+    var fitH = rotate ? DECK_W : DECK_H;
+    return {
+      rotate: rotate,
+      scale: Math.min(width / fitW, height / fitH)
+    };
+  }
+
+  // Expose the pure calculation for regression tests without changing the
+  // browser window or the live stage.
+  stage.deckFitForViewport = fitForViewport;
+
+  function layoutStage() {
+    // Reveal's print view lays out repeated pages; the PDF compositor supplies
+    // the outer stage for each page, so the one live stage must not be scaled.
+    if (/print-pdf/gi.test(window.location.search)) {
+      stage.style.transform = 'none';
+      stage.dataset.rotated = 'false';
+      return;
+    }
+
+    var viewport = viewportSize();
+    // On a narrow portrait phone, rotate the *outer* stage. Reveal continues
+    // to see the same unrotated logical frame, so layout and ink coordinates do
+    // not change when the device turns or has orientation lock enabled.
+    var fit = fitForViewport(viewport.width, viewport.height);
+    var screenWidth = (fit.rotate ? DECK_H : DECK_W) * fit.scale;
+    var screenHeight = (fit.rotate ? DECK_W : DECK_H) * fit.scale;
+    var screenLeft = (viewport.width - screenWidth) / 2;
+    var screenTop = (viewport.height - screenHeight) / 2;
+    stage.style.setProperty('--deck-screen-scale', String(fit.scale));
+    // Use screen-space offsets instead of percentage translation. Once the
+    // rectangle is rotated, its visual width is DECK_H and its left edge lies
+    // DECK_H units to the left of its transformed origin.
+    // Always scale the immutable authored canvas as one rectangle. CSS zoom is
+    // deliberately avoided: it cancels out against this transform on desktop
+    // but not on iOS, where WebKit scales the layout boxes without scaling the
+    // type with them -- the canvas fills the screen while every glyph comes out
+    // at a fraction of its authored size.
+    stage.style.left = '0';
+    stage.style.top = '0';
+    stage.style.transformOrigin = '0 0';
+    stage.style.transform = fit.rotate
+      ? 'translate(' + (screenLeft + DECK_H * fit.scale) + 'px,' + screenTop +
+        'px) rotate(90deg) scale(' + fit.scale + ')'
+      : 'translate(' + screenLeft + 'px,' + screenTop + 'px) scale(' +
+        fit.scale + ')';
+    stage.dataset.rotated = fit.rotate ? 'true' : 'false';
+  }
+
+  function syncStageState() {
+    if (!window.Reveal || !Reveal.getCurrentSlide) return;
+    var slide = Reveal.getCurrentSlide();
+    stage.classList.toggle('deck-stage-title', !!slide && slide.id === 'title-slide');
+    stage.classList.toggle('deck-stage-overview', !!Reveal.isOverview && Reveal.isOverview());
+  }
+
+  function fullscreenStage() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+      return;
+    }
+    // Fullscreen the viewport shell, never the fixed-size stage or Reveal's
+    // inset viewport. The shell remains screen-sized and layoutStage() keeps
+    // the complete 16:9 page centred inside it at exactly the same geometry.
+    var shell = stage.parentElement;
+    var request = shell.requestFullscreen || shell.webkitRequestFullscreen ||
+      shell.mozRequestFullScreen || shell.msRequestFullscreen;
+    if (request) request.call(shell);
+  }
+
+  // Capture F before Reveal's own handler, which would fullscreen only the
+  // inner content frame in embedded mode.
+  window.addEventListener('keydown', function (event) {
+    var target = event.target;
+    if (event.key.toLowerCase() !== 'f' || event.altKey || event.ctrlKey ||
+        event.metaKey || event.shiftKey || (target && (target.isContentEditable ||
+        /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    fullscreenStage();
+  }, true);
+
+  function attachReveal() {
+    if (!window.Reveal || !Reveal.on) return false;
+    Reveal.on('ready', function () { syncStageState(); layoutStage(); });
+    Reveal.on('slidechanged', syncStageState);
+    Reveal.on('overviewshown', syncStageState);
+    Reveal.on('overviewhidden', syncStageState);
+    syncStageState();
+    return true;
+  }
+
+  window.addEventListener('resize', layoutStage);
+  window.addEventListener('orientationchange', layoutStage);
+  document.addEventListener('fullscreenchange', layoutStage);
+  document.addEventListener('webkitfullscreenchange', layoutStage);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', layoutStage);
+  layoutStage();
+
+  if (!attachReveal()) {
+    var timer = setInterval(function () { if (attachReveal()) clearInterval(timer); }, 25);
+    setTimeout(function () { clearInterval(timer); }, 10000);
+  }
+})();
+</script>
   <div class="reveal">
     <div class="slides">
 
@@ -227,7 +373,7 @@ Dr Patrick Laub
 </div>
 </div>
 
-  <p class="date">2026-08-15</p>
+  <p class="date">2026-09-03</p>
 </section>
 <section id="quarto" class="slide level2">
 <h2>Quarto</h2>
@@ -308,7 +454,7 @@ x^n + y^n = z^n
 <div class="columns">
 <div class="column" style="width:45%;">
 <p>It is quite easy to show code and their results. E.g. here is some Python code:</p>
-<div id="88ff4493" class="cell" data-execution_count="1">
+<div id="72a115e8" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="" aria-label="1"></a>[x<span class="op">**</span><span class="dv">2</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>[0, 1, 4, 9, 16]</code></pre>
@@ -316,7 +462,7 @@ x^n + y^n = z^n
 </div>
 <p>Also you can hide the code and just show the generated output/figure.</p>
 </div><div class="column" style="width:55%;">
-<div id="e1406daf" class="cell" data-execution_count="2">
+<div id="cbb1844f" class="cell" data-execution_count="2">
 <div class="cell-output cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure>
@@ -343,6 +489,13 @@ x^n + y^n = z^n
   <script src="template_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
   <script src="template_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
   <script src="template_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="template_files/libs/revealjs/plugin/scribble/palm-rejection.js"></script>
+  <script src="template_files/libs/revealjs/plugin/scribble/perfect-freehand.min.js"></script>
+  <script src="template_files/libs/revealjs/plugin/scribble/annotate-geometry.js"></script>
+  <script src="template_files/libs/revealjs/plugin/scribble/annotate-model.js"></script>
+  <script src="template_files/libs/revealjs/plugin/scribble/annotate-pdf.js"></script>
+  <script src="template_files/libs/revealjs/plugin/scribble/annotate.js"></script>
+  <script src="template_files/libs/revealjs/plugin/scribble/scribble-pages.js"></script>
   <script src="template_files/libs/revealjs/plugin/quarto-support/support.js"></script>
   
 
@@ -364,6 +517,7 @@ x^n + y^n = z^n
 'autoAnimateUnmatched': true,
 'jumpToSlide': true,
 'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'scribble': {"pages":false},
 'smaller': false,
  
         // Display controls in the bottom right corner
@@ -439,7 +593,7 @@ x^n + y^n = z^n
 
         // Flags if the presentation is running in an embedded mode,
         // i.e. contained within a limited portion of the screen
-        embedded: false,
+        embedded: true,
 
         // Flags if we should show a help overlay when the questionmark
         // key is pressed
@@ -509,12 +663,17 @@ x^n + y^n = z^n
         // The "normal" size of the presentation, aspect ratio will be preserved
         // when the presentation is scaled to fit different resolutions. Can be
         // specified using percentage units.
-        width: 1120,
+        width: 3072,
 
-        height: 700,
+        height: 1845,
 
         // Factor of the display size that should remain empty around the content
-        margin: 0.1,
+        margin: 0,
+
+        // Bounds for smallest/largest possible scale to apply to content
+        minScale: 1,
+
+        maxScale: 1,
 
         // reveal.js plugins
         plugins: [QuartoLineHighlight, PdfExport, RevealMenu, QuartoSupport,
@@ -524,6 +683,13 @@ x^n + y^n = z^n
           RevealZoom
         ]
       });
+    </script>
+    <script>
+    // Quarto 1.8 emits a resize callback that reads this name even when
+    // `code-annotations: none` caused the declaration itself to be omitted.
+    // A window property supplies the missing global binding; if a later Quarto
+    // version declares its own lexical variable, that variable simply shadows it.
+    window.selectedAnnoteEl = null;
     </script>
     <script>
     // Immediate URL-hash sync for reveal.js (defeats its replaceState throttle).
@@ -660,9 +826,10 @@ x^n + y^n = z^n
     (function () {
       function loadAll() {
         if (!window.Reveal || !Reveal.isOverview || !Reveal.isOverview()) return;
-        // Horizontal slides cover stacks unloaded by horizontal distance; the leaf
-        // slides cover the vertical ones. Loading both fills the entire grid.
-        var slides = Array.from(Reveal.getHorizontalSlides()).concat(Array.from(Reveal.getSlides()));
+        // Every section in the deck, not Reveal.getSlides(): that list leaves out
+        // slides marked data-visibility="uncounted" (Quarto's incremental repeats),
+        // which would then stay display:none as holes in the middle of the grid.
+        var slides = document.querySelectorAll('.reveal .slides section');
         slides.forEach(function (s) { Reveal.loadSlide(s); });
       }
 
@@ -775,13 +942,8 @@ x^n + y^n = z^n
       }, true);
     })();
     </script>
-    <!-- Freehand annotation: a pen, highlighter and eraser for drawing on the
-         slides, in place of the reveal.js chalkboard plugin. perfect-freehand
-         (MIT) shapes the strokes; annotate.js is the tool itself, and its styling
-         lives in custom.scss. Both are plain scripts loaded relative to the
-         rendered deck, so they work from a file:// URL as well as a web server. -->
-    <script src="perfect-freehand.min.js"></script>
-    <script src="annotate.js"></script>
+    </div>
+    </div>
     <script id="quarto-html-after-body" type="application/javascript">
       window.document.addEventListener("DOMContentLoaded", function (event) {
         const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")

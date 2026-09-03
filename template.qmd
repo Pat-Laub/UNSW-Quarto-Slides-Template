@@ -4,8 +4,19 @@ subtitle: Made using Quarto and reveal.js
 author: Dr Patrick Laub
 date: today
 format:
-  revealjs:
-    theme: [serif, custom.scss, annotate.scss]
+  # The fixed 16:9 stage, the reveal.js fixes and the drawing tools all come
+  # from extensions vendored as git subtrees in _extensions/. `quarto use
+  # template` installs them into a new project for you; to refresh them here:
+  #   git subtree pull --prefix=_extensions/Pat-Laub/<name> \
+  #       <repo> <tag> --squash
+  slide-stage-revealjs:
+    # Appended to the extension's own [serif, slide-stage.scss]. custom.scss
+    # supplies the UNSW look through the stage's two theme hooks; annotate.scss
+    # is a theme layer rather than a plugin stylesheet because it needs the
+    # deck's own colours.
+    theme:
+      - custom.scss
+      - _extensions/Pat-Laub/scribble/annotate.scss
     controls: true
     controls-tutorial: true
     # Keep both slide arrows together in the bottom-right corner, clear of the
@@ -14,13 +25,11 @@ format:
     controls-back-arrows: visible
     logo: unsw-logo.png
     slide-number: c/t
-    # Slightly wider than Quarto's 1050 default (height and margin are already
-    # the defaults, 700 and 0.1). Keep `--slide-width` in custom.scss in step.
-    width: 1120
-    history: false
     strip-comments: true
     html-math-method: katex
-    include-after-body: reveal-fixes.html
+    # Drawing on slides during a lecture: press D, Esc leaves drawing mode.
+    revealjs-plugins:
+      - scribble
 execute:
   echo: true
 ---
