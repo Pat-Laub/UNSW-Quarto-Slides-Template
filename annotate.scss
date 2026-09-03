@@ -474,12 +474,25 @@ $ink-launcher-icon: 120px !default;
   color: $link-color; // the colour Quarto gives its other corner buttons
   cursor: pointer;
 
-  // The full-screen SVG's viewBox has less built-in whitespace than reveal's
-  // hamburger artwork, so leave it a little room inside the shared icon box.
+  // Deep enough to read as pressed next to the other corner buttons, without
+  // leaving their colour family.
+  &.active {
+    color: var(--r-link-color-dark);
+  }
+
+  // The hamburger's bars are wider than they are tall, so matching their height
+  // leaves these square icons looking small beside it. These sizes match its
+  // width instead, which also lands the 1.7-unit strokes on the thickness of
+  // its bars. The pen fills more of its viewBox than the full-screen brackets
+  // do, so it is drawn a little smaller.
   svg {
-    width: 80%;
-    height: 80%;
-    transform: translateY(-6px);
+    width: $ink-launcher-icon;
+    height: $ink-launcher-icon;
+  }
+
+  &.ink-pen svg {
+    width: $ink-launcher-icon * 0.97;
+    height: $ink-launcher-icon * 0.97;
   }
 }
 

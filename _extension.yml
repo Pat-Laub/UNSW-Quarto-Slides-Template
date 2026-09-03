@@ -24,4 +24,23 @@ contributes:
         annotate:
           # Growing a blank page by navigating past the last one is what the pad
           # is for and exactly wrong in a lecture deck, so it is off by default.
+          # `open` puts the tools in hand from the start, as a blank writing
+          # pad wants; a lecture deck opens as a deck and gets a corner button.
+          tools: closed
           pages: false
+          # How the annotated PDF is made. `generate` draws the pages here;
+          # `overlay` reads a PDF published beside the deck and writes the ink
+          # into it, keeping the deck's own typography. `{deck}` in pdfSource is
+          # this deck's path without its extension.
+          pdf: generate
+          pdfSource: "{deck}.pdf"
+    # The relay that mirrors a presenter's slide position and ink onto the
+    # audience's own copy. Inert unless this browser has been given a role and
+    # token: without those it opens no socket and contacts no server. It is a
+    # separate plugin entry so a deck that never multiplexes still gets the
+    # drawing tools without it having to be a separate extension.
+    - name: RevealMultiplex
+      self-contained: false
+      script:
+        - socket.io.min.js
+        - multiplex.js
