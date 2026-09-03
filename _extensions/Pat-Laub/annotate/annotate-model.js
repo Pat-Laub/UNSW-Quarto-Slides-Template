@@ -75,7 +75,13 @@
   //
   // Only the point behind the tip is ever dropped, so the ink stays under the
   // nib and nothing is re-shaped when the pen is lifted.
-  var SAMPLING = { repeat: 32, step: 0.5, flat: 0.15, span: 12, pressure: 0.03 };
+  // `step`, `flat` and `span` are distances in the page's own units, so they
+  // track the authored page: these are for the 3744-unit page the stage draws.
+  // They were originally tuned against a 1248-unit one, and are three times
+  // those -- a threshold left at the smaller page's value thins three times
+  // too finely and keeps three times the points. `pressure` is a pressure
+  // difference and `repeat` a count, so neither scales.
+  var SAMPLING = { repeat: 32, step: 1.5, flat: 0.45, span: 36, pressure: 0.03 };
 
   function seenRecently(points, q, repeat) {
     for (var i = Math.max(0, points.length - repeat); i < points.length; i++) {
