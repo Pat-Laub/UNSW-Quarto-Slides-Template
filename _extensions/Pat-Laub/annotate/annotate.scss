@@ -1,0 +1,650 @@
+/*-- scss:defaults --*/
+
+// Styling for annotate.js: the ink layers, the tool panel, and the corner
+// buttons that share reveal's bottom-left row with Quarto's menu. Loaded as a
+// theme layer rather than a plugin stylesheet because it needs the deck's own
+// $mainColor and $link-color.
+//
+// Every size below is in authored page units -- the stage is scaled to the
+// window as one rectangle, so a length meant for a browser-sized page comes out
+// at a fraction of everything beside it.
+
+$ink-accent: #2668c7 !default;
+$ink-panel-width: 132px !default;
+$ink-button-size: 102px !default;
+// The corner row is tapped with a finger; 168 authored px is the 44pt Apple
+// asks for once the canvas is scaled down to an iPad.
+$ink-launcher-size: 168px !default;
+$ink-launcher-icon: 120px !default;
+
+/*-- scss:rules --*/
+
+// The ink lives inside `.reveal .slides`, so reveal's slide transform scales it
+// and stored strokes stay in slide coordinates. There are two layers, because
+// reveal puts the current slide's content at `z-index: 11` and the two tools
+// want opposite sides of it:
+//
+//   * the pen sits above everything;
+//   * the highlighter goes just below the pen and multiplies with the slide, so
+//     text keeps its own colour rather than being washed out by a 40% overlay.
+//     Blending has to be set on the layer, not on its paths: `z-index` makes
+//     each layer a stacking context, which would leave a path with nothing but
+//     its sibling strokes to blend with. Layer-wide opacity also stops
+//     overlapping highlighter strokes from compounding into dark blotches.
+//
+// Neither layer takes any input; `.ink-surface` below does that for both.
+.deck-stage > .ink-layer {
+  position: absolute;
+  // The layer fills the stage. There is no letterbox to cover any more: the
+  // stage is the whole authored page and it is what gets scaled to the window,
+  // so a stroke started anywhere on screen is already over the layer. This is
+  // what OVERSCAN in annotate.js used to compensate for.
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 13;
+
+  &.ink-highlighter {
+    z-index: 12;
+    opacity: 0.4;
+    mix-blend-mode: multiply;
+  }
+
+  &.ink-text {
+    text {
+      font-family: system-ui, sans-serif;
+      font-weight: 400;
+      paint-order: stroke;
+      stroke: rgba(255, 255, 255, 0.75);
+      stroke-width: 1px;
+      stroke-linejoin: round;
+    }
+  }
+
+  // Ink that is about to go — passed over by the eraser, or crossed by a
+  // scribble — shown faded until the tool is lifted and it actually goes.
+  .ink-fading {
+    opacity: 0.3;
+  }
+
+  // Parked by the V key: the ink is still there, just not on show.
+  &.ink-hidden {
+    display: none;
+  }
+}
+
+// A local writing aid, deliberately separate from the annotation model. In a
+// multiplexed deck the presenter can create this view without sending anything
+// to audience clients.
+.deck-stage .ink-guide {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 11;
+  color: rgba(38, 104, 199, 0.2);
+
+  path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  &.ink-rules-hidden {
+    display: none;
+  }
+}
+
+.deck-stage .ink-selection-layer {
+  position: absolute;
+  left: -100%;
+  top: -100%;
+  width: 300%;
+  height: 300%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 14;
+
+  &.ink-hidden {
+    display: none;
+  }
+
+  .ink-lasso {
+    fill: rgba(38, 104, 199, 0.08);
+    stroke: $ink-accent;
+    stroke-width: 2;
+    stroke-dasharray: 7 5;
+  }
+
+  .ink-selection-box {
+    fill: none;
+    stroke: $ink-accent;
+    stroke-width: 1.5;
+    stroke-dasharray: 7 5;
+  }
+
+  .ink-resize-handle {
+    fill: #fff;
+    stroke: $ink-accent;
+    stroke-width: 2;
+  }
+}
+
+.deck-stage > .ink-layer .ink-selected {
+  filter: drop-shadow(0 0 3px rgba(38, 104, 199, 0.9));
+}
+
+// Overview is a grid of real slide sections, so each page gets its own compact
+// SVG copies. They inherit reveal's scale/position for that section and never
+// take input. The current ruled-guide preference is previewed on every page.
+.reveal .ink-overview-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 13;
+
+  &.ink-overview-highlighter {
+    z-index: 12;
+    opacity: 0.4;
+    mix-blend-mode: multiply;
+  }
+
+  &.ink-overview-rules {
+    z-index: 11;
+
+    path {
+      fill: none;
+      stroke: rgba(38, 104, 199, 0.2);
+      stroke-width: 1.5;
+    }
+  }
+}
+
+// What the pen, the highlighter and the eraser are all actually drawn on: one
+// box over the whole deck, a sibling of `.slides` rather than a child of it
+// (see build() in annotate.js for why). It only takes the pointer while a tool
+// is out, so the slide's own links stay clickable.
+//
+// `touch-action` is the whole point of it: without it the browser claims a
+// stylus or finger drag for scrolling and the stroke never happens. The
+// selection properties are the same idea for a pen on iPadOS, which otherwise
+// reads a drag over text as selecting it.
+//
+// The z-index is the scribble deck's: above `.slides`, which reveal puts at 1,
+// and below the arrows and the tool panel, so both stay usable with a tool in
+// hand.
+.deck-stage > .ink-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+
+  // No cursor by default, and a crosshair only once a mouse has moved across
+  // the slide: see hover() in annotate.js, and the Apple Pencil over Sidecar
+  // that the two of them are for.
+  &.drawing {
+    pointer-events: auto;
+    cursor: none;
+  }
+
+  &.drawing.ink-hover {
+    cursor: crosshair;
+  }
+
+  &.drawing.ink-text-mode,
+  &.drawing.ink-text-mode.ink-hover {
+    cursor: text;
+  }
+
+  &.drawing.ink-text-mode.ink-text-target {
+    cursor: grab;
+  }
+
+  &.drawing.ink-text-mode.ink-text-dragging {
+    cursor: grabbing;
+  }
+}
+
+// The only live HTML in a text annotation. It is fixed to the rendered slide
+// rectangle while editing, then replaced by inert SVG text on commit.
+.ink-text-editor {
+  position: fixed;
+  z-index: 60;
+  box-sizing: border-box;
+  margin: 0;
+  border: 2px solid rgba(38, 104, 199, 0.8);
+  border-radius: 6px;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  resize: none;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+  font-weight: 400;
+}
+
+.deck-stage > .ink-panel {
+  // Absolute inside the stage, not fixed: the stage's transform would be the
+  // containing block for `fixed` regardless, so say what is meant. Offsets are
+  // authored page units and scale with everything else.
+  position: absolute;
+  top: 50%;
+  // This blank-paper deck has no side bar, so keep the panel just inside the
+  // right edge.
+  right: 24px;
+  transform: translateY(-50%);
+  z-index: 45;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: $ink-panel-width;
+  padding: 15px 0;
+  border-radius: 36px;
+  background: #fff;
+  box-shadow: 0 6px 36px rgba(0, 0, 0, 0.25);
+
+  &.active {
+    display: flex;
+  }
+
+  > hr {
+    width: 66px;
+    height: 3px;
+    margin: 12px 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.15);
+  }
+}
+
+.deck-stage .ink-btn,
+.deck-stage .ink-swatch,
+.deck-stage .ink-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: $ink-button-size;
+  height: $ink-button-size;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  color: $mainColor;
+  cursor: pointer;
+  -webkit-appearance: none;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.07);
+  }
+
+  svg {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+.deck-stage .ink-btn.active,
+.deck-stage .ink-option.active {
+  background: $ink-accent;
+  color: #fff;
+}
+
+// Less-frequent and session-level controls live beside the writing rail. The
+// rail stays short and glanceable, while labels make this panel self-explanatory
+// when it is opened at the start of a lecture or for an occasional edit.
+.deck-stage .ink-more {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 24px);
+  transform: translateY(-50%);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 630px;
+  padding: 30px;
+  border-radius: 36px;
+  background: #fff;
+  color: $mainColor;
+  box-shadow: 0 6px 36px rgba(0, 0, 0, 0.25);
+  font-size: 42px;
+
+  &[hidden] {
+    display: none;
+  }
+
+  hr {
+    width: 100%;
+    height: 3px;
+    margin: 18px 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.15);
+  }
+}
+
+// Selection actions are close to the lasso tool without making the main rail
+// permanently taller. Paste stays here after a slide change; Copy and Delete
+// enable as soon as a lasso encloses ink.
+.deck-stage .ink-selection-actions {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 24px);
+  transform: translateY(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 15px;
+  border-radius: 36px;
+  background: #fff;
+  box-shadow: 0 6px 36px rgba(0, 0, 0, 0.25);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.deck-stage .ink-more-title {
+  padding: 0 15px 12px;
+  color: rgba(0, 0, 0, 0.58);
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: left;
+}
+
+.deck-stage .ink-width-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .ink-nib {
+    flex: 1;
+  }
+}
+
+.deck-stage .ink-rule-title {
+  padding-top: 15px;
+}
+
+.deck-stage .ink-rule-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 9px;
+
+  .ink-rule-preview {
+    flex: 1;
+    color: rgba(38, 104, 199, 0.7);
+  }
+}
+
+.deck-stage .ink-option {
+  justify-content: flex-start;
+  width: 100%;
+  height: 114px;
+  gap: 30px;
+  padding: 0 27px;
+  font: inherit;
+  white-space: nowrap;
+
+  svg {
+    flex: 0 0 60px;
+  }
+}
+
+.deck-stage .ink-btn[disabled],
+.deck-stage .ink-option[disabled] {
+  opacity: 0.25;
+  background: transparent;
+  cursor: default;
+}
+
+// Each swatch shows its colour as a dot; the button's `color` is set inline by
+// annotate.js, so the dot and its selection ring both just use currentColor.
+.deck-stage .ink-swatch::before {
+  content: "";
+  width: 51px;
+  height: 51px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.deck-stage .ink-swatch.active::before {
+  box-shadow: 0 0 0 9px #fff, 0 0 0 15px currentColor;
+}
+
+// The full-screen button continues reveal's bottom-left menu control. Both use
+// the same bottom offset, so their icon boxes share a baseline.
+// Quarto's hamburger is a separate fixed element that it sizes for a browser
+// page, not for this canvas, so on the stage it comes out a fraction of the
+// launchers beside it. Give it the same origin and the same box.
+.reveal .slide-menu-button {
+  position: fixed !important;
+  left: 24px !important;
+  bottom: 24px !important;
+  width: $ink-launcher-size;
+  height: $ink-launcher-size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  // The bars are not an icon font: Quarto draws them as a background image on
+  // `::before`, boxed at 1rem, so `font-size` leaves them alone and the box has
+  // to be set directly.
+  i.fas::before,
+  i::before {
+    width: $ink-launcher-icon;
+    height: $ink-launcher-icon;
+    background-size: $ink-launcher-icon $ink-launcher-icon;
+  }
+}
+
+.deck-stage > .ink-launchers {
+  // In authored page units, like the panel. A rem here would follow the deck's
+  // root font size rather than the button's own scale.
+  --ink-button: #{$ink-launcher-size};
+
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  z-index: 30;
+  display: flex;
+  &.ink-offset {
+    // Continue immediately after reveal's 2.2rem menu button. The two icons
+    // have their own internal whitespace, so a CSS gap here looks much wider
+    // than the gap between the hamburger's bars.
+    left: calc(24px + var(--ink-button));
+  }
+}
+
+.deck-stage .ink-toggle {
+  display: grid;
+  place-items: center;
+  width: var(--ink-button);
+  height: var(--ink-button);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $link-color; // the colour Quarto gives its other corner buttons
+  cursor: pointer;
+
+  // The full-screen SVG's viewBox has less built-in whitespace than reveal's
+  // hamburger artwork, so leave it a little room inside the shared icon box.
+  svg {
+    width: 80%;
+    height: 80%;
+    transform: translateY(-6px);
+  }
+}
+
+// Keep the annotation controls out of PDF exports (they are presentation
+// controls, not content): `.print-pdf` covers reveal's print view, which is
+// what scripts/print_slides_pdfs.py captures. The ink layer goes with them:
+// there is one layer showing one slide's strokes, so in the stacked print
+// layout it would land on whichever slide happened to be current. Overview mode
+// is the same story — one layer, a whole grid of slides — so hide it there too.
+.print-pdf {
+  .ink-panel,
+  .ink-launchers,
+  .ink-guide,
+  .ink-layer,
+  .ink-overview-layer,
+  .ink-selection-layer,
+  .ink-surface,
+  .ink-text-editor {
+    display: none !important;
+  }
+}
+.reveal.overview {
+  .ink-panel,
+  .ink-launchers,
+  .ink-guide,
+  .ink-layer,
+  .ink-selection-layer,
+  .ink-surface,
+  .ink-text-editor {
+    display: none !important;
+  }
+}
+
+// Print view receives page-specific copies after Reveal has built its stacked
+// `.pdf-page` wrappers. Rules use the slide rectangle; ink keeps the same
+// overscan as the live layers so marks across an edge are retained.
+.ink-print {
+  overflow: visible;
+  pointer-events: none;
+  z-index: 13;
+
+  &.ink-highlighter {
+    z-index: 12;
+    opacity: 0.4;
+    mix-blend-mode: multiply;
+  }
+
+  &.ink-print-rules {
+    z-index: 11;
+
+    path {
+      fill: none;
+      stroke: rgba(38, 104, 199, 0.2);
+      stroke-width: 1.5;
+    }
+  }
+}
+
+// Offers the browser dialog again if it is dismissed. This is screen chrome,
+// not slide content, and the print media rule below keeps it out of the PDF.
+.ink-print-bar {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  font: 14px/1.3 system-ui, sans-serif;
+  color: #252525;
+
+  button {
+    padding: 4px 10px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    background: #f6f6f6;
+    font: inherit;
+    cursor: pointer;
+  }
+}
+@media print {
+  .ink-panel,
+  .ink-launchers,
+  .ink-guide,
+  .ink-layer,
+  .ink-overview-layer,
+  .ink-selection-layer,
+  .ink-surface,
+  .ink-text-editor {
+    display: none !important;
+  }
+
+  .ink-print-bar {
+    display: none !important;
+  }
+}
+
+// The scroll view is disabled in annotate.js; drop its menu entry too.
+.slide-menu-item:has(a[onclick*="toggleScrollView"]),
+.slide-tool-item:has(a[onclick*="toggleScrollView"]) {
+  display: none;
+}
+
+// The audience view is on a projector, so it carries no controls at all: the
+// annotation panel and its corner buttons are for the presenting device, and
+// reveal's own arrows and progress bar would only invite someone to click them.
+// The ink itself stays, since showing it is the whole point of that view.
+// `multiplex-audience` is set on <html> by the multiplex plugin.
+.multiplex-audience {
+  .deck-stage > .ink-panel,
+  .deck-stage > .ink-launchers,
+  .reveal .controls,
+  .reveal .progress,
+  .reveal .slide-menu-button {
+    display: none !important;
+  }
+
+  // The pointer has no job on this screen.
+  .deck-stage > .ink-surface { pointer-events: none !important; }
+}
+
+// C says otherwise, either way round: see showChrome() in annotate.js. On a
+// presenting screen it takes the corner row away when it is over the slide; on
+// a projected one it puts the row -- and the panel and the pointer it opens --
+// back, for when that screen is the only one to hand.
+.ink-chrome-off {
+  .deck-stage > .ink-launchers,
+  .reveal .slide-menu-button {
+    display: none !important;
+  }
+}
+
+.multiplex-audience.ink-chrome-on {
+  .deck-stage > .ink-panel.active,
+  .deck-stage > .ink-launchers,
+  .reveal .slide-menu-button {
+    display: flex !important;
+  }
+
+  .deck-stage > .ink-surface.drawing { pointer-events: auto !important; }
+}
+
+// Shown only when the presenting device is on a different deck, so the slides
+// deliberately stop following. Small and low-contrast: it is projected.
+.multiplex-notice {
+  position: fixed;
+  left: 50%;
+  bottom: 42px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: none;
+  padding: 12px 36px;
+  border-radius: 2997px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 39px;
+  font-family: sans-serif;
+}
+
+// The scroll view is disabled in annotate.js; drop its menu entry too.
+.slide-menu-item:has(a[onclick*="toggleScrollView"]),
+.slide-tool-item:has(a[onclick*="toggleScrollView"]) {
+  display: none;
+}

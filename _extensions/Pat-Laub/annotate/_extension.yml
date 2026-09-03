@@ -1,0 +1,27 @@
+title: Annotate
+author: Patrick Laub
+version: 0.1.0
+quarto-required: ">=1.4.0"
+contributes:
+  revealjs-plugins:
+    # annotate.js bootstraps itself once Reveal is ready rather than being a
+    # reveal plugin object, so `register: false` loads the scripts without
+    # adding a name to reveal's plugins array. Order matters: annotate.js
+    # returns immediately if `window.perfectFreehand` is not already there, and
+    # the geometry/model/pdf modules are what it draws and exports with.
+    - name: annotate
+      register: false
+      self-contained: false
+      script:
+        - palm-rejection.js
+        - perfect-freehand.min.js
+        - annotate-geometry.js
+        - annotate-model.js
+        - annotate-pdf.js
+        - annotate.js
+        - annotate-pages.js
+      config:
+        annotate:
+          # Growing a blank page by navigating past the last one is what the pad
+          # is for and exactly wrong in a lecture deck, so it is off by default.
+          pages: false
