@@ -15,7 +15,7 @@ format:
     # is a theme layer rather than a plugin stylesheet because it needs the
     # deck's own colours.
     theme:
-      - custom.scss
+      - unsw-theme/unsw-theme.scss
       - _extensions/Pat-Laub/annotate/annotate.scss
     controls: true
     controls-tutorial: true
@@ -23,7 +23,7 @@ format:
     # annotation panel on the right edge.
     controls-layout: bottom-right
     controls-back-arrows: visible
-    logo: unsw-logo.png
+    logo: unsw-theme/unsw-logo.png
     slide-number: c/t
     strip-comments: true
     html-math-method: katex
