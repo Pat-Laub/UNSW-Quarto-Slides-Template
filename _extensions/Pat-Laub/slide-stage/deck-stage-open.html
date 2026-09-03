@@ -1,0 +1,146 @@
+<div class="deck-viewport-shell">
+<div class="deck-stage" data-deck-stage>
+<script>
+(function () {
+  var stage = document.currentScript.parentElement;
+
+  // The title artwork belongs to the first slide only. Reveal is not up yet, so
+  // decide from the URL hash: no hash (or the root one) means we are opening on
+  // the title slide. Doing it here rather than waiting for Reveal's `ready`
+  // keeps the artwork from flashing behind a deep-linked slide on refresh.
+  (function () {
+    var hash = window.location.hash.replace(/^#\/?/, "");
+    if (hash === "" || hash === "0" || hash === "title-slide") {
+      stage.classList.add("deck-stage-title");
+    }
+  })();
+
+  // The authored page, read from the custom properties slide-stage.scss puts
+  // on this element so the stylesheet stays the single source of truth. Three
+  // times the old 1248 x 702 by default, so the deck lays out and rasterises at
+  // 4K and the fit transform below only ever shrinks it: Safari magnifies an
+  // already-rasterised layer rather than re-rendering it, which is what made
+  // any scale above 1 look soft. The fallbacks are that default, for the case
+  // where the stylesheet has not applied.
+  var authored = getComputedStyle(stage);
+  var DECK_W = parseFloat(authored.getPropertyValue('--deck-width')) || 3744;
+  var DECK_H = parseFloat(authored.getPropertyValue('--deck-height')) || 2106;
+  var PHONE_MAX = 600;
+
+  function viewportSize() {
+    var visual = window.visualViewport;
+    return {
+      width: visual ? visual.width : window.innerWidth,
+      height: visual ? visual.height : window.innerHeight
+    };
+  }
+
+  function fitForViewport(width, height) {
+    var rotate = width < height && width <= PHONE_MAX;
+    var fitW = rotate ? DECK_H : DECK_W;
+    var fitH = rotate ? DECK_W : DECK_H;
+    return {
+      rotate: rotate,
+      scale: Math.min(width / fitW, height / fitH)
+    };
+  }
+
+  // Expose the pure calculation for regression tests without changing the
+  // browser window or the live stage.
+  stage.deckFitForViewport = fitForViewport;
+
+  function layoutStage() {
+    // Reveal's print view lays out repeated pages; the PDF compositor supplies
+    // the outer stage for each page, so the one live stage must not be scaled.
+    if (/print-pdf/gi.test(window.location.search)) {
+      stage.style.transform = 'none';
+      stage.dataset.rotated = 'false';
+      return;
+    }
+
+    var viewport = viewportSize();
+    // On a narrow portrait phone, rotate the *outer* stage. Reveal continues
+    // to see the same unrotated logical frame, so layout and ink coordinates do
+    // not change when the device turns or has orientation lock enabled.
+    var fit = fitForViewport(viewport.width, viewport.height);
+    var screenWidth = (fit.rotate ? DECK_H : DECK_W) * fit.scale;
+    var screenHeight = (fit.rotate ? DECK_W : DECK_H) * fit.scale;
+    var screenLeft = (viewport.width - screenWidth) / 2;
+    var screenTop = (viewport.height - screenHeight) / 2;
+    stage.style.setProperty('--deck-screen-scale', String(fit.scale));
+    // Use screen-space offsets instead of percentage translation. Once the
+    // rectangle is rotated, its visual width is DECK_H and its left edge lies
+    // DECK_H units to the left of its transformed origin.
+    // Always scale the immutable authored canvas as one rectangle. CSS zoom is
+    // deliberately avoided: it cancels out against this transform on desktop
+    // but not on iOS, where WebKit scales the layout boxes without scaling the
+    // type with them -- the canvas fills the screen while every glyph comes out
+    // at a fraction of its authored size.
+    stage.style.left = '0';
+    stage.style.top = '0';
+    stage.style.transformOrigin = '0 0';
+    stage.style.transform = fit.rotate
+      ? 'translate(' + (screenLeft + DECK_H * fit.scale) + 'px,' + screenTop +
+        'px) rotate(90deg) scale(' + fit.scale + ')'
+      : 'translate(' + screenLeft + 'px,' + screenTop + 'px) scale(' +
+        fit.scale + ')';
+    stage.dataset.rotated = fit.rotate ? 'true' : 'false';
+  }
+
+  function syncStageState() {
+    if (!window.Reveal || !Reveal.getCurrentSlide) return;
+    var slide = Reveal.getCurrentSlide();
+    stage.classList.toggle('deck-stage-title', !!slide && slide.id === 'title-slide');
+    stage.classList.toggle('deck-stage-overview', !!Reveal.isOverview && Reveal.isOverview());
+  }
+
+  function fullscreenStage() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+      return;
+    }
+    // Fullscreen the viewport shell, never the fixed-size stage or Reveal's
+    // inset viewport. The shell remains screen-sized and layoutStage() keeps
+    // the complete 16:9 page centred inside it at exactly the same geometry.
+    var shell = stage.parentElement;
+    var request = shell.requestFullscreen || shell.webkitRequestFullscreen ||
+      shell.mozRequestFullScreen || shell.msRequestFullscreen;
+    if (request) request.call(shell);
+  }
+
+  // Capture F before Reveal's own handler, which would fullscreen only the
+  // inner content frame in embedded mode.
+  window.addEventListener('keydown', function (event) {
+    var target = event.target;
+    if (event.key.toLowerCase() !== 'f' || event.altKey || event.ctrlKey ||
+        event.metaKey || event.shiftKey || (target && (target.isContentEditable ||
+        /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    fullscreenStage();
+  }, true);
+
+  function attachReveal() {
+    if (!window.Reveal || !Reveal.on) return false;
+    Reveal.on('ready', function () { syncStageState(); layoutStage(); });
+    Reveal.on('slidechanged', syncStageState);
+    Reveal.on('overviewshown', syncStageState);
+    Reveal.on('overviewhidden', syncStageState);
+    syncStageState();
+    return true;
+  }
+
+  window.addEventListener('resize', layoutStage);
+  window.addEventListener('orientationchange', layoutStage);
+  document.addEventListener('fullscreenchange', layoutStage);
+  document.addEventListener('webkitfullscreenchange', layoutStage);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', layoutStage);
+  layoutStage();
+
+  if (!attachReveal()) {
+    var timer = setInterval(function () { if (attachReveal()) clearInterval(timer); }, 25);
+    setTimeout(function () { clearInterval(timer); }, 10000);
+  }
+})();
+</script>
