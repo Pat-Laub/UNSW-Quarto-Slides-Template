@@ -16,7 +16,7 @@ format:
     # deck's own colours.
     theme:
       - custom.scss
-      - _extensions/Pat-Laub/scribble/annotate.scss
+      - _extensions/Pat-Laub/annotate/annotate.scss
     controls: true
     controls-tutorial: true
     # Keep both slide arrows together in the bottom-right corner, clear of the
@@ -29,7 +29,7 @@ format:
     html-math-method: katex
     # Drawing on slides during a lecture: press D, Esc leaves drawing mode.
     revealjs-plugins:
-      - scribble
+      - annotate
 execute:
   echo: true
 ---
