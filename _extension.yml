@@ -1,0 +1,32 @@
+title: Slide stage
+author: Patrick Laub
+version: 0.4.0
+quarto-required: ">=1.4.0"
+contributes:
+  formats:
+    revealjs:
+      # Only what the stage itself depends on. Presentation taste -- transition,
+      # slide numbers, controls, navigation mode -- stays with the consumer:
+      # change any key below and the fit transform or the SCSS breaks, which is
+      # the test for whether something belongs here.
+      #
+      # The authored page is 3744 x 2106 and one uniform transform shrinks it to
+      # the viewport. Reveal runs embedded and unscaled inside the inset content
+      # frame, so width/height are that frame rather than the page, and
+      # min/max-scale pin Reveal's own scaling off entirely.
+      width: 3072
+      height: 1845
+      margin: 0
+      min-scale: 1
+      max-scale: 1
+      embedded: true
+      # reveal-fixes.html replaces reveal's own throttled hash handling.
+      history: false
+      theme:
+        - serif
+        - slide-stage.scss
+      include-before-body:
+        - deck-stage-open.html
+      include-after-body:
+        - reveal-fixes.html
+        - deck-stage-close.html
