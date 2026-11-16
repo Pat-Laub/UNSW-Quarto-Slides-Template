@@ -10,7 +10,7 @@
   <meta name="generator" content="quarto-1.10.18">
 
   <meta name="author" content="Dr Patrick Laub">
-  <meta name="dcterms.date" content="2026-11-16">
+  <meta name="dcterms.date" content="2026-11-17">
   <title>UNSW Slides Template</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -102,7 +102,7 @@
     code span.vs { color: #20794d; } /* VerbatimString */
     code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </style>
-  <link rel="stylesheet" href="template_files/libs/revealjs/dist/theme/quarto-7e57923eee1ddef0a6319d648c3ab220.css">
+  <link rel="stylesheet" href="template_files/libs/revealjs/dist/theme/quarto-5b92f6b4f5e1b83098b2290a97cebe5c.css">
   <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
   <script>document.addEventListener("DOMContentLoaded", function () {
  var mathElements = document.getElementsByClassName("math");
@@ -432,7 +432,7 @@ Dr Patrick Laub
 </div>
 </div>
 
-  <p class="date">2026-11-16</p>
+  <p class="date">2026-11-17</p>
 </section>
 <section id="quarto" class="slide level2">
 <h2>Quarto</h2>
@@ -513,7 +513,7 @@ x^n + y^n = z^n
 <div class="columns">
 <div class="column" style="width:45%;">
 <p>It is quite easy to show code and their results. E.g. here is some Python code:</p>
-<div id="102f01c6" class="cell" data-execution_count="1">
+<div id="14924254" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="" aria-label="1"></a>[x<span class="op">**</span><span class="dv">2</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>[0, 1, 4, 9, 16]</code></pre>
@@ -521,7 +521,7 @@ x^n + y^n = z^n
 </div>
 <p>Also you can hide the code and just show the generated output/figure.</p>
 </div><div class="column" style="width:55%;">
-<div id="8a16d3a1" class="cell" data-execution_count="2">
+<div id="56bebeef" class="cell" data-execution_count="2">
 <div class="cell-output cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure>
@@ -1365,6 +1365,169 @@ x^n + y^n = z^n
         var timer = setInterval(function () { if (attach()) clearInterval(timer); }, 25);
         setTimeout(function () { clearInterval(timer); }, 10000);
       }
+    })();
+    </script>
+    <script>
+    (function () {
+      if (!/print-pdf/gi.test(window.location.search)) return;
+      function fitPagesToDeck() {
+        // Reveal owns the inset frame; the PDF page is the same fixed outer stage
+        // used live and by annotations.
+        // Chromium stores custom paper sizes in hundredths of an inch. The
+        // authored 2106px height therefore becomes 2108.16 CSS px (21.96in) in the
+        // PDF MediaBox. Use that same printable height for the page box so its
+        // background and right rail reach the physical edge without creating a
+        // second fragment. The authored canvas is 3744 x 2106; stored ink stays in
+        // 1248 x 702 units and the overlay scales it to the MediaBox.
+        var pageW = 3744, pageH = 2108.16;
+        var contentX = 336, contentY = 120, contentW = 3072, contentH = 1845;
+        var st = document.createElement('style');
+        st.textContent = '@page{size:' + pageW + 'px ' + pageH + 'px;margin:0}';
+        document.head.appendChild(st);
+        document.body.style.width = pageW + 'px';
+        document.querySelectorAll('.pdf-page').forEach(function (page) {
+          page.style.width = pageW + 'px';
+          page.style.height = pageH + 'px';
+          page.style.position = 'relative';
+          page.style.background = '#fff';
+          page.style.isolation = 'isolate';
+          // A transform makes the page box monolithic for CSS fragmentation
+          // (the same reason decktape's live-view capture never lost content:
+          // Reveal's transform:scale() was in the ancestor chain). Without it,
+          // print fragmentation pushes any monolithic child that doesn't fit
+          // the remaining page space (an <img>, or a line of inline-block
+          // ::: columns) wholly onto the next page, where pdfMaxPagesPerSlide=1
+          // clips it to nothing. Each .pdf-page exactly fits one printed page,
+          // so as one monolithic unit its overflow is simply clipped in place —
+          // matching the live view.
+          page.style.transform = 'scale(1)';
+          // Reveal may have positioned the slide before our final @page rule.
+          // Align it to the authored canvas rather than retaining a stale margin.
+          var slide = page.querySelector('section');
+          if (slide) {
+            slide.style.setProperty('left', '0px', 'important');
+            // Reveal offsets the section 35px down and stretches it to the page
+            // height, so its box crosses the printed page's bottom edge — which
+            // makes CSS fragmentation run inside it, pushing any monolithic
+            // child (<img>, inline-block ::: columns) that straddles the edge
+            // wholly onto the next page, where pdfMaxPagesPerSlide=1 clips it
+            // to nothing. Start the box at 0 instead and move it down with a
+            // transform: same visual position, but the box no longer crosses
+            // the page edge (and a transformed box is itself monolithic), so
+            // overflow is simply clipped in place like the live view.
+            var top = slide.offsetTop;
+            slide.style.setProperty('top', '0px', 'important');
+            slide.style.setProperty('width', contentW + 'px', 'important');
+            slide.style.setProperty(
+              'transform', 'translate(' + contentX + 'px,' + (contentY + top) + 'px)',
+              'important'
+            );
+            // With the box inside the page, overflow:hidden makes the section a
+            // scroll container — monolithic in CSS fragmentation — so content
+            // taller than the page (e.g. a ::: columns line-box with a portrait
+            // image) is clipped in place rather than pushed. This needs an
+            // explicit height (auto would collapse the clip to the content).
+            //
+            slide.style.setProperty('height', contentH + 'px', 'important');
+            // Clip where the live deck does: slide-stage's clip-path on .slides
+            // lets content run 0.5em past the sides and on into the top and
+            // bottom bands, so the print and its baked previews must too.
+            var em = parseFloat(getComputedStyle(document.querySelector('.reveal .slides')).fontSize);
+            var y = contentY + top;
+            slide.style.setProperty('overflow', 'visible', 'important');
+            slide.style.setProperty('clip-path', 'inset(' + (-y) + 'px ' + (-em / 2) + 'px ' +
+              (y + contentH - pageH) + 'px ' + (-em / 2) + 'px)', 'important');
+          }
+
+          // Reveal keeps a separate background element beside the section. Like
+          // the live deck's, it fills the whole page.
+          var background = page.querySelector('.slide-background');
+          if (background) {
+            background.style.setProperty('left', '0px', 'important');
+            background.style.setProperty('top', '0px', 'important');
+            background.style.setProperty('width', pageW + 'px', 'important');
+            background.style.setProperty('height', pageH + 'px', 'important');
+          }
+
+          var chrome = document.createElement('div');
+          chrome.className = 'deck-print-chrome' +
+            (slide && slide.id === 'title-slide' ? ' deck-print-title' : '');
+          chrome.style.zIndex = '-1';
+          page.appendChild(chrome);
+        });
+      }
+      function fixSlideNumbers() {
+        // Reveal's print view numbers pages with a flat counter (innerHTML=v++),
+        // ignoring the slideNumber format and data-visibility="uncounted" (the
+        // auto-agenda divider slides here). Recompute live-view numbers: the
+        // 1-based position among counted slides, formatted like SlideNumber's
+        // "c" / "c/t" markup. (Reveal's own getSlidePastCount/getTotalSlides
+        // can't be used — they query .slides>section, which the print view's
+        // .pdf-page wrappers no longer match.)
+        var format = window.Reveal && typeof Reveal.getConfig === 'function'
+          ? Reveal.getConfig().slideNumber : null;
+        if (format !== 'c' && format !== 'c/t') return;
+        var pages = Array.prototype.slice.call(document.querySelectorAll('.pdf-page'));
+        var entries = pages.map(function (page) {
+          var slide = page.querySelector('section');
+          return {
+            el: page.querySelector('.slide-number'),
+            uncounted: !!(slide && slide.getAttribute('data-visibility') === 'uncounted'),
+          };
+        });
+        var total = entries.filter(function (e) { return !e.uncounted; }).length;
+        var past = 0;
+        entries.forEach(function (e) {
+          var current = past + (e.uncounted ? 0 : 1);
+          if (e.el) {
+            // The spaces between spans render as "x / y", matching live view
+            // (Reveal's formatNumber template has whitespace between the spans).
+            e.el.innerHTML = '<span class="slide-number-a">' + current + '</span>' +
+              (format === 'c/t'
+                ? ' <span class="slide-number-delimiter">/</span> ' +
+                  '<span class="slide-number-b">' + total + '</span>'
+                : '');
+          }
+          if (!e.uncounted) past++;
+        });
+      }
+      // Quarto's per-slide footers are missing from Reveal's print view: in live
+      // mode the support plugin clones the current slide's .footer up to the
+      // viewport on each slide change, but skips that when printing. Copy each
+      // slide's own footer, or the deck's default one (honouring
+      // data-footer="false"), into its page; the stylesheet places it there as it
+      // does on the live stage.
+      function placeFooters() {
+        var defaultFooter = document.querySelector('.footer-default');
+        document.querySelectorAll('.pdf-page').forEach(function (page) {
+          var slide = page.querySelector('section');
+          if (!slide) return;
+          var footer = slide.querySelector('.footer');
+          if (!footer && defaultFooter && slide.getAttribute('data-footer') !== 'false') {
+            footer = defaultFooter;
+          }
+          if (!footer) return;
+          var copy = footer.cloneNode(true);
+          copy.classList.remove('footer-default');
+          copy.style.cssText = 'display:block;position:absolute;z-index:2;';
+          page.style.position = 'relative';
+          page.appendChild(copy);
+        });
+      }
+      // Reveal's print view is set up asynchronously (and fires pdf-ready when
+      // done); poll as a fallback in case Reveal was ready before this ran.
+      var done = false;
+      function run() {
+        if (!done) { done = true; fitPagesToDeck(); fixSlideNumbers(); placeFooters(); }
+      }
+      if (window.Reveal && typeof Reveal.on === 'function') {
+        Reveal.on('pdf-ready', run);
+      }
+      var ticks = 0;
+      var id = setInterval(function () {
+        if (document.querySelector('.pdf-page')) { run(); clearInterval(id); }
+        if (++ticks > 3000) clearInterval(id);
+      }, 10);
     })();
     </script>
     </div>
