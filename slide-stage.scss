@@ -809,3 +809,17 @@ $thumb-width: clamp(140px, 17vw, 260px);
     }
   }
 }
+
+// Slide backgrounds belong to the page, like the progress bar and arrows, not
+// to the inset content frame. Spread over the margins, they would also take
+// the press that starts a text selection there, so only an iframe background
+// (which may be interactive) still receives the pointer.
+.reveal:not(.overview) .backgrounds {
+  position: fixed !important;
+  inset: 0 !important;
+  pointer-events: none;
+}
+
+.reveal .slide-background-content iframe {
+  pointer-events: auto;
+}
