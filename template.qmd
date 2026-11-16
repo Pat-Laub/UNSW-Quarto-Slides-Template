@@ -18,6 +18,8 @@ format:
       - unsw-theme/unsw-theme.scss
       - _extensions/Pat-Laub/annotate/annotate.scss
     controls: true
+    # Arrows and corner buttons show only while the mouse moves.
+    stage-chrome: auto-hide
     controls-tutorial: true
     # Keep both slide arrows together in the bottom-right corner, clear of the
     # annotation panel on the right edge.
