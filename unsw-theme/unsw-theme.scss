@@ -58,6 +58,27 @@ $stage-rail-background: $unsw-yellow;
   min-height: 0.75em;
 }
 
+// Reveal's slide and list boxes are blocks, so make every ancestor of a vfill
+// a flex column; a list item ending in one then takes the spare height. Reveal's
+// print stylesheet forces every section to a block, so the PDF needs the
+// heavier selector or it prints with no vfill at all.
+.reveal .slides section:has(.lecture-vfill),
+html.reveal-print .reveal .slides section:has(.lecture-vfill) {
+  display: flex !important;
+  flex-direction: column;
+}
+.reveal .slides section:has(.lecture-vfill) > :is(ul, ol):has(.lecture-vfill) {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+.reveal .slides section :is(ul, ol) > li:has(> .lecture-vfill) {
+  flex: 1 1 0;
+}
+.reveal .slides section > .lecture-vfill {
+  flex: 1 1 0;
+}
+
 // Screen-readable equivalents of the named xcolor values used by the source
 // Beamer decks. These classes are emitted for prose; colour commands inside
 // equations remain native LaTeX so KaTeX can colour individual symbols.
@@ -75,6 +96,28 @@ $stage-rail-background: $unsw-yellow;
 .text-violet  { color: #800080 !important; }
 .text-purple  { color: #bf0040 !important; }
 .text-brown   { color: #bf8040 !important; }
+
+// Booktabs rules, matching the Typst tutorials: heavy top and bottom, a light
+// rule under the header, nothing between body rows. Reveal's default ruled every
+// row alike, and its bold <th> is lost on headers that are all KaTeX.
+.reveal .slides table {
+  border-top: 0.08em solid currentColor;
+  border-bottom: 0.08em solid currentColor;
+
+  th,
+  td {
+    border-bottom: none;
+    padding: 0.15em 0.7em;
+  }
+
+  thead th {
+    border-bottom: 0.04em solid currentColor;
+    padding-bottom: 0.25em;
+  }
+
+  tbody tr:first-child td { padding-top: 0.3em; }
+  tbody tr:last-child td { padding-bottom: 0.3em; }
+}
 
 // Beamer's `\begin{tabular}{|l|cc|}` with \hline between every row draws a
 // fully boxed table; pandoc keeps the cells but drops the rules, since
@@ -170,10 +213,13 @@ details.code-fold:not([open]) {
   // Hide a copy once a later one is on screen. The second selector is for the
   // handout: filters/solutions.lua strips .fragment off the steps inside a
   // blanked answer, and with no steps left to fire only the last copy (the
-  // complete formula) should show.
+  // complete formula) should show. A step that is itself a blanked answer
+  // (\solution{} in the formula) never shows, so it hides nothing.
   > .math-step:has(~ .math-step.visible),
-  > .math-step:has(~ .math-step:not(.fragment)) {
+  > .math-step:has(~ .math-step:not(.fragment):not(.solution-hidden):not(.solution-placeholder)) {
     visibility: hidden;
+    // Wait out reveal's 0.2s fragment fade, or the shared lines blink.
+    transition: visibility 0s 0.2s;
   }
 
   // Inline maths keeps its place in the sentence; a display formula is a block
@@ -181,6 +227,11 @@ details.code-fold:not([open]) {
   &.math-steps-inline {
     display: inline-grid;
   }
+}
+
+// The rest of the paragraph waits for the formula's last step, as in Beamer.
+.reveal :has(.math-step.fragment:not(.visible)) + .math-steps-after {
+  visibility: hidden;
 }
 
 // Assumed-knowledge recall slides. The pale background alone is too subtle to
@@ -203,4 +254,124 @@ details.code-fold:not([open]) {
   color: #ffffff;
   background: #d94827;
   border-radius: 2997px;
+}
+
+// Display environments -- definition, proof, question and friends.
+//
+// The decks carry these as bold run-in labels (`**Proof**`, `**Question**`),
+// which is a structure the typography never showed. These classes delimit the
+// block with a rule above and below -- the convention a mathematics text uses
+// for a set-off result -- and open it with a small-caps run-in label. No box
+// and no fill: a tinted panel reads as a callout, and anything heavier
+// competes with the annotation ink drawn over the slide in the lecture.
+//
+// The names are prefixed `env-` deliberately. Quarto claims `.proof`,
+// `.solution` and `.remark` for its own theorem environments and rewrites
+// those Divs into an AST node that filters/solutions.lua never sees, which
+// would leak worked answers into the student build. Prefixing keeps the whole
+// family out of that path; see the note at the top of that filter.
+$env-label: #383D3D;
+
+.reveal .slides div[class*="env-"] {
+  margin: 1.1em 0;
+}
+
+// The label joins the first paragraph so it reads as a run-in, rather than
+// sitting on a line of its own the way a bare ::before on the div would.
+// Letter-spaced small caps carry further than italic at projector distance and
+// stay clear of the italics the prose now uses for defined terms.
+//
+// The text comes from a custom property rather than `attr()`: the pseudo-
+// element belongs to the child paragraph, and `attr()` only reads attributes
+// of its own originating element, so `attr(data-label)` on the div resolves to
+// an empty string here. Custom properties inherit, so this works -- and it
+// gives a per-slide override for free:
+//   ::: {.env-proof style="--env-label: 'Proof (left as exercise).'"}
+.reveal .slides div[class*="env-"] > :first-child::before {
+  content: var(--env-label, "");
+  font-variant: small-caps;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: $env-label;
+  margin-right: 0.45em;
+}
+
+.reveal .slides .env-definition  { --env-label: "Definition."; }
+.reveal .slides .env-theorem     { --env-label: "Theorem."; }
+.reveal .slides .env-proof       { --env-label: "Proof."; }
+.reveal .slides .env-example     { --env-label: "Example."; }
+.reveal .slides .env-question    { --env-label: "Question."; }
+.reveal .slides .env-exercise    { --env-label: "Exercise."; }
+.reveal .slides .env-solution    { --env-label: "Solution."; }
+.reveal .slides .env-note        { --env-label: "Note."; }
+.reveal .slides .env-remark      { --env-label: "Remark."; }
+.reveal .slides .env-application { --env-label: "Application."; }
+
+// The tombstone. Floating it off the last child keeps it on the final line of
+// the proof, as amsthm does, and falls back to its own flush-right line when
+// that child is a display equation rather than a paragraph.
+.reveal .slides .env-proof > :last-child::after {
+  content: "\25A1";
+  float: right;
+  margin-left: 0.5em;
+}
+
+// Every other environment ends with the same box turned through 45 degrees,
+// scaled so the diamond is no taller than the box.
+.reveal .slides div[class*="env-"]:not(.env-proof) > :last-child::after {
+  content: "\25A1";
+  float: right;
+  margin-left: 0.5em;
+  transform: rotate(45deg) scale(0.75);
+}
+
+// The distribution spec.
+//
+// Every distribution in Module 1.2 is the same record -- notation, parameters,
+// density, moments, application -- but each one had been written out by hand as
+// bold run-in labels, so the wording drifted (`Probability density function`,
+// `Probability Density Function`, `density`; `Mean`, `mean`; `Variance`,
+// `variance:`; `m.g.f`, `Moment generating function`) and the grouping drifted
+// with it: some slides gave the mean its own block, others ran mean, variance
+// and m.g.f. together inside one bullet.
+//
+// Writing the record as a Markdown definition list makes it a table of fields
+// instead of a paragraph that happens to start in bold: the label column is set
+// once here, so no slide can spell it differently, and every distribution lands
+// in the same shape. Labels are right-aligned against the rule of the value
+// column, which is what makes a stack of them read as a spec rather than a list.
+//
+// Both columns size to their content and the block is centred: a `1fr` value
+// column would stretch to the slide edge, leaving a one-line value like
+// `lambda > 0` trailing half a slide of blank to its right.
+.reveal .slides dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, max-content);
+  column-gap: 1.1em;
+  row-gap: 0.5em;
+  margin: 0.8em auto;
+  width: max-content;
+  max-width: 100%;
+  align-items: baseline;
+}
+
+.reveal .slides dl > dt {
+  font-variant: small-caps;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: right;
+  color: #383D3D;
+}
+
+.reveal .slides dl > dd {
+  margin: 0;
+}
+
+// A display equation as a field value should sit on the text baseline of its
+// label, not be centred in the column the way KaTeX would place it.
+.reveal .slides dl > dd .math.display {
+  margin: 0;
+  text-align: left;
 }
