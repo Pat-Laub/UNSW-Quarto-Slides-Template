@@ -780,16 +780,14 @@ $ink-launcher-icon: 120px !default;
   }
 }
 
-// The audience view is on a projector, so it carries no controls at all: the
-// annotation panel and its corner buttons are for the presenting device, and
-// reveal's own arrows would only invite someone to click them. The progress
-// bar stays as a gauge, with its click taken away. The ink itself stays, since
-// showing it is the whole point of that view.
+// The audience view is on a projector. The annotation panel is for the
+// presenting device, so it goes; the arrows and corner buttons are left to
+// slide-stage's `stage-chrome: auto-hide`, which shows them only while the
+// mouse moves. The progress bar stays as a gauge, with its click taken away.
+// The ink itself stays, since showing it is the whole point of that view.
 // `multiplex-audience` is set on <html> by the multiplex plugin.
 .multiplex-audience {
-  .deck-stage > .ink-panel,
-  .deck-stage > .deck-launchers,
-  .reveal .controls {
+  .deck-stage > .ink-panel {
     display: none !important;
   }
 
@@ -810,8 +808,7 @@ $ink-launcher-icon: 120px !default;
 }
 
 .multiplex-audience.ink-chrome-on {
-  .deck-stage > .ink-panel.active,
-  .deck-stage > .deck-launchers {
+  .deck-stage > .ink-panel.active {
     display: flex !important;
   }
 
