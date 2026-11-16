@@ -10,7 +10,7 @@
   <meta name="generator" content="quarto-1.10.18">
 
   <meta name="author" content="Dr Patrick Laub">
-  <meta name="dcterms.date" content="2026-09-04">
+  <meta name="dcterms.date" content="2026-11-16">
   <title>UNSW Slides Template</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -102,7 +102,7 @@
     code span.vs { color: #20794d; } /* VerbatimString */
     code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </style>
-  <link rel="stylesheet" href="template_files/libs/revealjs/dist/theme/quarto-a9c7a0a1274a54fa53f8134206d3cf68.css">
+  <link rel="stylesheet" href="template_files/libs/revealjs/dist/theme/quarto-440f5cffa3f387b95dd0797d9f1d818d.css">
   <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
   <script>document.addEventListener("DOMContentLoaded", function () {
  var mathElements = document.getElementsByClassName("math");
@@ -323,6 +323,46 @@
     if (request) request.call(shell);
   }
 
+  // The corner rail. The stage owns it because the button in it expands the
+  // shell, which only the stage knows about; a plugin that adds its own control
+  // here (annotate's pen) appends to `stage.deckLaunchers` so the row stays one
+  // row with one origin.
+  var launchers = document.createElement('div');
+  launchers.className = 'deck-launchers';
+  var full = document.createElement('button');
+  full.className = 'deck-launcher deck-launcher-fullscreen';
+  full.title = 'Full screen (f)';
+  full.setAttribute('aria-label', 'Full screen');
+  full.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M4 9V4h5"/><path d="M15 4h5v5"/><path d="M20 15v5h-5"/>' +
+    '<path d="M9 20H4v-5"/></svg>';
+  full.addEventListener('click', fullscreenStage);
+  launchers.appendChild(full);
+  // An iPad has no Esc and no O. Overview is the only way to move more than a
+  // slide at a time, so it gets a button in the row a finger already uses --
+  // and one that stays put inside the grid, since tapping a card to leave also
+  // changes slide.
+  var grid = document.createElement('button');
+  grid.className = 'deck-launcher deck-launcher-overview';
+  grid.title = 'Slide overview (esc)';
+  grid.setAttribute('aria-label', 'Slide overview');
+  grid.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+    '<rect x="3" y="3" width="7" height="7" rx="1"/>' +
+    '<rect x="14" y="3" width="7" height="7" rx="1"/>' +
+    '<rect x="3" y="14" width="7" height="7" rx="1"/>' +
+    '<rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
+  grid.addEventListener('click', function () {
+    // deck-thumbs.html claims this hook when the deck was built with baked
+    // previews; without them the button opens reveal's own live overview.
+    if (stage.deckOverview) stage.deckOverview();
+    else if (window.Reveal && Reveal.toggleOverview) Reveal.toggleOverview();
+  });
+  launchers.appendChild(grid);
+  stage.appendChild(launchers);
+  stage.deckLaunchers = launchers;
+
   // Capture F before Reveal's own handler, which would fullscreen only the
   // inner content frame in embedded mode.
   window.addEventListener('keydown', function (event) {
@@ -373,7 +413,7 @@ Dr Patrick Laub
 </div>
 </div>
 
-  <p class="date">2026-09-04</p>
+  <p class="date">2026-11-16</p>
 </section>
 <section id="quarto" class="slide level2">
 <h2>Quarto</h2>
@@ -431,7 +471,7 @@ Dr Patrick Laub
 <p><span class="math display">
 x^n + y^n = z^n
 </span></p>
-<p>for <span class="math inline">x,y,z \in \mathbf{N}</span> is not possible for <span class="math inline">n &gt; 2</span>.</p>
+<p>for <span class="math inline">x,y,z \in \mathbf{N}</span> is not possible for <span style="white-space: nowrap;"><span class="math inline">n &gt; 2</span>.</span></p>
 </div><div class="column" style="width:40%;">
 <div class="quarto-figure quarto-figure-center">
 <figure>
@@ -454,7 +494,7 @@ x^n + y^n = z^n
 <div class="columns">
 <div class="column" style="width:45%;">
 <p>It is quite easy to show code and their results. E.g. here is some Python code:</p>
-<div id="811e08c4" class="cell" data-execution_count="1">
+<div id="460ba01b" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="" aria-label="1"></a>[x<span class="op">**</span><span class="dv">2</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>[0, 1, 4, 9, 16]</code></pre>
@@ -462,7 +502,7 @@ x^n + y^n = z^n
 </div>
 <p>Also you can hide the code and just show the generated output/figure.</p>
 </div><div class="column" style="width:55%;">
-<div id="0422b1a3" class="cell" data-execution_count="2">
+<div id="392e6dba" class="cell" data-execution_count="2">
 <div class="cell-output cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure>
@@ -493,6 +533,7 @@ x^n + y^n = z^n
   <script src="template_files/libs/revealjs/plugin/annotate/perfect-freehand.min.js"></script>
   <script src="template_files/libs/revealjs/plugin/annotate/annotate-geometry.js"></script>
   <script src="template_files/libs/revealjs/plugin/annotate/annotate-model.js"></script>
+  <script src="template_files/libs/revealjs/plugin/annotate/annotate-codec.js"></script>
   <script src="template_files/libs/revealjs/plugin/annotate/annotate-pdf.js"></script>
   <script src="template_files/libs/revealjs/plugin/annotate/annotate.js"></script>
   <script src="template_files/libs/revealjs/plugin/annotate/annotate-pages.js"></script>
@@ -518,8 +559,9 @@ x^n + y^n = z^n
 'autoAnimateDuration': 1,
 'autoAnimateUnmatched': true,
 'jumpToSlide': true,
-'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
-'annotate': {"tools":"closed","pages":false,"pdf":"generate","pdfSource":"{deck}.pdf"},
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":false},
+'annotate': {"tools":"closed","pages":false,"dock":"right","penWidth":5,"laserWidth":15,"delay":20,"pdf":"generate","pdfSource":"{deck}.pdf"},
+'multiplexRelay': {"server":null},
 'smaller': false,
  
         // Display controls in the bottom right corner
@@ -686,12 +728,26 @@ x^n + y^n = z^n
         ]
       });
     </script>
+    <!-- Before adding a fix here, check reveal.js's config options (and Quarto's
+         pass-through of them): a setting is better than a script. -->
     <script>
     // Quarto 1.8 emits a resize callback that reads this name even when
     // `code-annotations: none` caused the declaration itself to be omitted.
     // A window property supplies the missing global binding; if a later Quarto
     // version declares its own lexical variable, that variable simply shadows it.
     window.selectedAnnoteEl = null;
+    </script>
+    <script>
+    // reveal lays out an r-stretch image as soon as its data-src is swapped in; if
+    // that image has not loaded yet the layout leaves it at height 0 and nothing
+    // re-runs it. Lay out again when such an image finishes loading.
+    document.addEventListener('load', function (e) {
+      var el = e.target;
+      if (el.tagName === 'IMG' && el.matches('.reveal .slides section > .r-stretch, .reveal .slides section > .stretch') &&
+          window.Reveal && Reveal.isReady && Reveal.isReady()) {
+        Reveal.layout();
+      }
+    }, true);
     </script>
     <script>
     // Immediate URL-hash sync for reveal.js (defeats its replaceState throttle).
@@ -802,6 +858,64 @@ x^n + y^n = z^n
       }
 
       // Reveal may not be initialised yet when this after-body script runs; wait for it.
+      if (!attach()) {
+        var iv = setInterval(function () { if (attach()) clearInterval(iv); }, 50);
+        setTimeout(function () { clearInterval(iv); }, 10000);
+      }
+    })();
+    </script>
+    <script>
+    // Even gutters between overview previews.
+    //
+    // Reveal lays the overview grid on a pitch of `getComputedSlideSize() + 70`.
+    // That size is the inset content frame reveal runs in, and the 70 is a
+    // constant in slide units -- neither knows about the card a preview actually
+    // draws, which is the whole authored page and 16:9 where the frame is taller.
+    // A card sized to fill that pitch therefore leaves 4 slide units of gutter
+    // beside it and 150 below it: horizontally the previews touch, and the grid
+    // stops reading as separate slides.
+    //
+    // The pitch is ours to set, because the only zero-argument call to
+    // getComputedSlideSize() in reveal is the one overview makes when it activates
+    // -- layout and the print view both pass a viewport size -- so wrapping that
+    // one case changes the grid and nothing else. Both overview's layout() and its
+    // update() (which recentres the current card) read the numbers it derives
+    // there, so the selection stays centred with no second correction.
+    //
+    // The deck instance, not window.Reveal: the global is a facade of bound
+    // forwarders, and the overview controller calls the method on the instance it
+    // was handed. A plugin's init() is what hands it over.
+    (function () {
+      // reveal's own overview spacing, subtracted back out of the pitch we want.
+      var REVEAL_OVERVIEW_MARGIN = 70;
+
+      function setPitch(deck) {
+        var stage = document.querySelector('[data-deck-stage]');
+        if (!stage || typeof deck.getComputedSlideSize !== 'function') return;
+        var inner = deck.getComputedSlideSize;
+        deck.getComputedSlideSize = function (width, height) {
+          if (width !== undefined || height !== undefined) return inner.apply(this, arguments);
+          var stageStyle = getComputedStyle(stage);
+          var read = function (name) { return parseFloat(stageStyle.getPropertyValue(name)); };
+          var cardWidth = read('--deck-overview-card-width');
+          var cardHeight = read('--deck-overview-card-height');
+          var gap = read('--deck-overview-card-gap');
+          var scale = read('--deck-overview-scale') || 1;
+          // No stylesheet, no opinion: leave reveal's own pitch alone.
+          if (!cardWidth || !cardHeight || !gap) return inner.apply(this, arguments);
+          return {
+            width: cardWidth + gap / scale - REVEAL_OVERVIEW_MARGIN,
+            height: cardHeight + gap / scale - REVEAL_OVERVIEW_MARGIN
+          };
+        };
+      }
+
+      function attach() {
+        if (!window.Reveal || !Reveal.registerPlugin) return false;
+        Reveal.registerPlugin({ id: 'slide-stage-overview-pitch', init: setPitch });
+        return true;
+      }
+
       if (!attach()) {
         var iv = setInterval(function () { if (attach()) clearInterval(iv); }, 50);
         setTimeout(function () { clearInterval(iv); }, 10000);
@@ -942,6 +1056,296 @@ x^n + y^n = z^n
           document.body.style.transition = DEFAULT_TRANSITION;
         }
       }, true);
+    })();
+    </script>
+    <script>
+    // Keep at most one per-slide footer clone. Quarto's support.js appends one on
+    // both `ready` and `slidechanged` but removes only one per change, so a deep
+    // link to a footed slide leaves a stale clone behind.
+    (function () {
+      var reveal = document.querySelector('.reveal');
+      if (!reveal || !window.MutationObserver) return;
+      function isClone(node) {
+        return node.nodeType === 1 && node.parentNode === reveal &&
+          node.classList.contains('footer') && !node.classList.contains('footer-default');
+      }
+      new MutationObserver(function (records) {
+        var newest = null;
+        records.forEach(function (r) {
+          r.addedNodes.forEach(function (n) { if (isClone(n)) newest = n; });
+        });
+        if (!newest) return;
+        Array.prototype.forEach.call(reveal.children, function (n) {
+          if (n !== newest && isClone(n)) n.remove();
+        });
+      }).observe(reveal, { childList: true });
+    })();
+    </script>
+    <!-- The slide number rides above the progress bar's leading edge for a moment after each slide change. -->
+    <style>
+    .reveal .progress .progress-pop {
+      position: absolute; bottom: 100%; margin-bottom: 12px; translate: -50% 0;
+      font: 600 42px/1 system-ui, sans-serif; color: currentColor;
+      opacity: 0; pointer-events: none; transition: opacity 400ms ease;
+    }
+    .reveal .progress.popping .progress-pop { opacity: 1; transition: opacity 120ms ease; }
+    </style>
+    <script>
+    window.addEventListener('load', () => {
+      const bar = document.querySelector('.reveal .progress');
+      if (!window.Reveal || !bar || Reveal.isPrintView()) return;
+      const pop = bar.appendChild(document.createElement('div'));
+      pop.className = 'progress-pop';
+      const fill = bar.querySelector('span');
+      // Follow the bar only until the fade-out ends.
+      let until = 0, frame = 0;
+      const track = () => {
+        pop.style.left = (100 * new DOMMatrix(getComputedStyle(fill).transform).a) + '%';
+        frame = performance.now() < until ? requestAnimationFrame(track) : 0;
+      };
+      let timer;
+      Reveal.on('slidechanged', e => {
+        if (!e.previousSlide) return;
+        pop.textContent = Reveal.getSlidePastCount() + 1;
+        bar.classList.add('popping');
+        until = performance.now() + 1600;
+        if (!frame) track();
+        clearTimeout(timer);
+        timer = setTimeout(() => bar.classList.remove('popping'), 1200);
+      });
+    });
+    </script>
+    <script>
+    // The overview grid, drawn from prebaked pictures instead of live slides.
+    //
+    // Reveal's own overview keeps every slide in the DOM and lays the deck out as
+    // a scaled 2-D map of sections. Each cell is therefore the authored canvas --
+    // 3744 x 2106 here -- and a lecture deck is fifty of them at once. On an iPad
+    // that is not a slow grid, it is a dead tab: the WebContent process was being
+    // killed around 5.4 GB, reliably, once you were a few stacks into a module.
+    // Everything tried against that (leaving reveal's lazy loading alone, standing
+    // cheap placeholders where it had unloaded a slide, taking the off-screen
+    // cards out of rendering) either still crashed or left the map full of holes,
+    // because the cost is in having the cells at all rather than in their content.
+    //
+    // So this does not scale slides down; it shows photographs of them. A build
+    // step beside the deck writes `<deck>.thumbs/001.jpg ...`, one per slide in
+    // document order, and the panel below is a plain scroller of <img> tags at
+    // their natural size. No section is transformed, unloaded or even touched, and
+    // `loading="lazy"` means the browser decodes only the cards on screen -- the
+    // same machinery any photo grid on the device already relies on.
+    //
+    // The pictures are of the slide with its fragments revealed and without any
+    // ink drawn on it since: a map of the deck, not a mirror of its current state.
+    //
+    // Where there is no `.thumbs` directory -- a deck built without the step, and
+    // every fixture deck in this repo's own tests -- nothing is installed and the
+    // grid button falls through to `Reveal.toggleOverview()` exactly as before.
+    (function () {
+      var stage = document.querySelector('[data-deck-stage]');
+      if (!stage) return;
+      var shell = stage.parentElement;
+
+      // The leaf sections, in document order, which is the order the thumbnails
+      // are numbered in. Not Reveal.getSlides(): that omits slides marked
+      // data-visibility="uncounted" (Quarto's incremental repeats), which the
+      // print capture the pictures come from does include, so using it would slide
+      // every thumbnail after the first repeat one cell out of place.
+      function columns() {
+        var slides = document.querySelector('.reveal .slides');
+        if (!slides) return [];
+        return [].filter.call(slides.children, function (child) {
+          return child.tagName === 'SECTION';
+        }).map(function (top) {
+          var nested = [].filter.call(top.children, function (child) {
+            return child.tagName === 'SECTION';
+          });
+          return nested.length ? nested : [top];
+        });
+      }
+
+      function base() {
+        // `<deck>.html` -> `<deck>.thumbs/`. Only the final extension goes, so a
+        // Quarto deck published as `module-1-1.slides.html` reads from
+        // `module-1-1.slides.thumbs/`.
+        return location.pathname.replace(/\.html$/, '') + '.thumbs/';
+      }
+
+      var manifest = null;
+      function load() {
+        if (manifest) return manifest;
+        manifest = fetch(base() + 'index.json', { cache: 'no-cache' })
+          .then(function (response) { return response.ok ? response.json() : null; })
+          .catch(function () { return null; });
+        return manifest;
+      }
+
+      var panel = null;
+      var cards = [];
+
+      function build(count) {
+        panel = document.createElement('div');
+        panel.className = 'deck-thumbs';
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-label', 'Slide overview');
+        panel.hidden = true;
+
+        var grid = document.createElement('div');
+        grid.className = 'deck-thumbs-grid';
+        panel.appendChild(grid);
+
+        var n = 0;
+        columns().forEach(function (column, h) {
+          column.forEach(function (section, v) {
+            var index = n++;
+            if (index >= count) return;
+            var card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'deck-thumb';
+            card.style.gridColumn = String(h + 1);
+            card.style.gridRow = String(v + 1);
+
+            var image = document.createElement('img');
+            image.loading = 'lazy';
+            image.decoding = 'async';
+            // The picture is the 16:9 authored page. Stating the ratio rather than
+            // pixel dimensions lets the card size come from the stylesheet while
+            // the box still exists before the image arrives, which is what keeps
+            // the grid from reflowing as it scrolls and what lazy loading needs in
+            // order to know which cards are off screen.
+            image.style.aspectRatio = '16 / 9';
+            image.alt = '';
+            image.src = base() + String(index + 1).padStart(3, '0') + '.jpg';
+            card.appendChild(image);
+
+            var number = document.createElement('span');
+            number.className = 'deck-thumb-number';
+            number.textContent = String(index + 1);
+            card.appendChild(number);
+
+            card.addEventListener('click', function () {
+              close();
+              Reveal.slide(h, column.length > 1 ? v : undefined);
+            });
+            grid.appendChild(card);
+            cards.push({ card: card, section: section });
+          });
+        });
+
+        var shut = document.createElement('button');
+        shut.type = 'button';
+        shut.className = 'deck-thumbs-close';
+        shut.title = 'Close overview (esc)';
+        shut.setAttribute('aria-label', 'Close overview');
+        shut.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M5 5l14 14"/><path d="M19 5L5 19"/></svg>';
+        shut.addEventListener('click', close);
+        panel.appendChild(shut);
+
+        shell.appendChild(panel);
+      }
+
+      function isOpen() { return panel && !panel.hidden; }
+
+      function mark() {
+        var current = Reveal.getCurrentSlide();
+        var here = null;
+        cards.forEach(function (entry) {
+          var present = entry.section === current;
+          entry.card.classList.toggle('is-current', present);
+          if (present) here = entry.card;
+        });
+        return here;
+      }
+
+      function open() {
+        if (!panel || isOpen()) return;
+        var here = mark();
+        panel.hidden = false;
+        stage.classList.add('deck-stage-thumbs');
+        if (here) here.scrollIntoView({ block: 'center', inline: 'center' });
+      }
+
+      function close() {
+        if (!isOpen()) return;
+        panel.hidden = true;
+        stage.classList.remove('deck-stage-thumbs');
+      }
+
+      function toggle() { isOpen() ? close() : open(); }
+
+      // Reveal's overview steps a card at a time, keeping the row where the next
+      // column is long enough. Left to reveal, a linear deck would take these keys
+      // as next/prev and step fragments behind the panel instead.
+      var moves = {
+        arrowleft: [-1, 0], h: [-1, 0], arrowright: [1, 0], l: [1, 0],
+        arrowup: [0, -1], k: [0, -1], arrowdown: [0, 1], j: [0, 1]
+      };
+
+      function move(by) {
+        var at = Reveal.getIndices();
+        var h = at.h + by[0], v = (at.v || 0) + by[1];
+        var column = columns()[h];
+        if (!column || v < 0 || (by[1] && v >= column.length)) return;
+        Reveal.slide(h, Math.min(v, column.length - 1));
+      }
+
+      function install() {
+        return load().then(function (index) {
+          if (!index || !index.count) return false;
+          // The pictures are addressed by position, so a deck rebuilt without its
+          // thumbnails rebuilt would point every card at the wrong slide. Cheaper
+          // to show reveal's own grid than a confident, wrong map.
+          var slides = columns().reduce(function (total, column) {
+            return total + column.length;
+          }, 0);
+          if (slides !== index.count) {
+            console.warn('deck-thumbs: ' + index.count + ' thumbnails for ' +
+              slides + ' slides; falling back to the live overview.');
+            return false;
+          }
+          build(index.count);
+          // Claiming the stage's overview hook is what takes the grid button off
+          // Reveal.toggleOverview; deck-stage-open.html calls this if it is set.
+          stage.deckOverview = toggle;
+          // Whatever moved the deck -- these keys, or reveal's own Home, End and
+          // shifted arrows -- the highlight follows it.
+          Reveal.on('slidechanged', function () {
+            if (!isOpen()) return;
+            var here = mark();
+            if (here) here.scrollIntoView({ block: 'center', inline: 'center' });
+          });
+          return true;
+        });
+      }
+
+      // Reveal owns Esc and O. Capture them first once the panel is installed, so
+      // the keyboard opens the same grid the button does rather than the live one,
+      // and while it is open take the arrows and h/j/k/l to move around it.
+      window.addEventListener('keydown', function (event) {
+        if (!panel) return;
+        var target = event.target;
+        var key = event.key === 'Escape' ? 'escape' : event.key.toLowerCase();
+        var by = isOpen() && moves.hasOwnProperty(key) && moves[key];
+        if ((key !== 'escape' && key !== 'o' && !by) || event.altKey || event.ctrlKey ||
+            event.metaKey || event.shiftKey || (target && (target.isContentEditable ||
+            /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        by ? move(by) : toggle();
+      }, true);
+
+      function attach() {
+        if (!window.Reveal || !Reveal.on || !Reveal.isReady || !Reveal.isReady()) return false;
+        install();
+        return true;
+      }
+
+      if (!attach()) {
+        var timer = setInterval(function () { if (attach()) clearInterval(timer); }, 25);
+        setTimeout(function () { clearInterval(timer); }, 10000);
+      }
     })();
     </script>
     </div>
