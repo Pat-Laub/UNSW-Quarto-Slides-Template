@@ -1,7 +1,7 @@
 /*-- scss:defaults --*/
 
 // Styling for annotate.js: the ink layers, the tool panel, and the corner
-// buttons that share reveal's bottom-left row with Quarto's menu. Loaded as a
+// buttons in reveal's bottom-left row. Loaded as a
 // theme layer rather than a plugin stylesheet because it needs the deck's own
 // $mainColor and $link-color.
 //
@@ -10,11 +10,28 @@
 // at a fraction of everything beside it.
 
 $ink-accent: #2668c7 !default;
-$ink-panel-width: 132px !default;
+// The ring on the tool in hand, for the tools that draw in no colour of their
+// own. The ones that do -- pen, highlighter, eraser -- set `--ink-ring`.
+$ink-ring: #9b9790 !default;
+$ink-panel-width: 180px !default;
+// The buttons in the options tray and the rows under the rail.
 $ink-button-size: 102px !default;
-// The corner row is tapped with a finger; 168 authored px is the 44pt Apple
-// asks for once the canvas is scaled down to an iPad.
-$ink-launcher-size: 168px !default;
+// The rail is aimed at with a thumb mid-lecture, so it gets bigger targets than
+// the tray: as wide as the rail leaves room for, and as long as sharing out
+// $ink-panel-length between them makes them -- never less than square.
+$ink-rail-button-width: 150px !default;
+$ink-rail-icon: 76px !default;
+// How long the rail is, as a share of the stage's shorter side, whichever way it
+// lies: turned along the top or bottom it keeps the length and the buttons it
+// had standing up. Not all of it: the ends of a side are left for whatever the
+// slide keeps there.
+$ink-panel-length: 0.75 !default;
+// The handle the rail is dragged by, across its length.
+$ink-grip-size: 84px !default;
+// How far the rail keeps from the stage's edges, and the gap between the rail
+// and whatever opens beside it.
+$ink-dock-margin: 24px !default;
+// Matches the icon the stage draws in the corner row the pen joins.
 $ink-launcher-icon: 120px !default;
 
 /*-- scss:rules --*/
@@ -69,11 +86,6 @@ $ink-launcher-icon: 120px !default;
   .ink-fading {
     opacity: 0.3;
   }
-
-  // Parked by the V key: the ink is still there, just not on show.
-  &.ink-hidden {
-    display: none;
-  }
 }
 
 // A local writing aid, deliberately separate from the annotation model. In a
@@ -98,12 +110,23 @@ $ink-launcher-icon: 120px !default;
   }
 }
 
+.deck-stage .ink-laser {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 15;
+
+  path {
+    fill: currentColor;
+  }
+}
+
 .deck-stage .ink-selection-layer {
   position: absolute;
-  left: -100%;
-  top: -100%;
-  width: 300%;
-  height: 300%;
+  // Same box as the ink layers: it shares their viewBox, so anything else
+  // scales and shifts the lasso away from the pointer that drew it.
+  inset: 0;
   overflow: visible;
   pointer-events: none;
   z-index: 14;
@@ -152,7 +175,9 @@ $ink-launcher-icon: 120px !default;
   &.ink-overview-highlighter {
     z-index: 12;
     opacity: 0.4;
-    mix-blend-mode: multiply;
+    // No `mix-blend-mode` here, unlike the live layer: blending an element
+    // inside reveal's transformed overview costs a buffer the size of the
+    // whole authored page, per slide, and at this size it does not show.
   }
 
   &.ink-overview-rules {
@@ -237,18 +262,28 @@ $ink-launcher-icon: 120px !default;
   // Absolute inside the stage, not fixed: the stage's transform would be the
   // containing block for `fixed` regardless, so say what is meant. Offsets are
   // authored page units and scale with everything else.
+  //
+  // Where on the stage it sits is set inline by placePanel() in annotate.js:
+  // the deck's `dock` option says where it starts, and its grip moves it.
   position: absolute;
-  top: 50%;
-  // This blank-paper deck has no side bar, so keep the panel just inside the
-  // right edge.
-  right: 24px;
-  transform: translateY(-50%);
+  left: 0;
+  top: 0;
   z-index: 45;
   display: none;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box;
   width: $ink-panel-width;
-  padding: 15px 0;
+  min-height: calc(#{$ink-panel-length} * var(--ink-stage-side, 100%));
+  max-height: calc(100% - #{2 * $ink-dock-margin});
+  padding: 0 0 15px;
+  // A thumb that rolls a little while it taps would otherwise be read as the
+  // start of a pan, and a cancelled pan leaves no click: the tool the tap was
+  // for is never chosen. Nothing on the rail scrolls, so refuse the gesture.
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   border-radius: 36px;
   background: #fff;
   box-shadow: 0 6px 36px rgba(0, 0, 0, 0.25);
@@ -258,11 +293,87 @@ $ink-launcher-icon: 120px !default;
   }
 
   > hr {
-    width: 66px;
+    flex: none;
+    width: 84px;
     height: 3px;
     margin: 12px 0;
     border: 0;
     background: rgba(0, 0, 0, 0.15);
+  }
+
+  // Along the top or the bottom: the same rail, lying down.
+  &.ink-across {
+    flex-direction: row;
+    width: auto;
+    height: $ink-panel-width;
+    min-width: calc(#{$ink-panel-length} * var(--ink-stage-side, 100%));
+    max-width: calc(100% - #{2 * $ink-dock-margin});
+    min-height: 0;
+    padding: 0 15px 0 0;
+
+    > hr {
+      width: 3px;
+      height: 84px;
+      margin: 0 12px;
+    }
+  }
+}
+
+// What the rail is moved by. It takes the pointer itself (see dragPanel() in
+// annotate.js), so a drag here is never ink and never a tap on a tool.
+.deck-stage > .ink-panel > .ink-grip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: $ink-grip-size;
+  cursor: grab;
+  touch-action: none;
+
+  &::before {
+    content: "";
+    width: 66px;
+    height: 12px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+.deck-stage > .ink-panel.ink-dragging > .ink-grip {
+  cursor: grabbing;
+}
+
+.deck-stage > .ink-panel.ink-across > .ink-grip {
+  width: $ink-grip-size;
+  height: 100%;
+
+  &::before {
+    width: 12px;
+    height: 66px;
+  }
+}
+
+// Folded by a tap on the grip: the grip, to move it and to open it again, and
+// the tool in hand, to show what a stroke will be.
+.deck-stage > .ink-panel.ink-collapsed {
+  min-height: 0;
+  min-width: 0;
+
+  > :not(.ink-grip):not([data-tool].active) {
+    display: none !important;
+  }
+}
+
+.deck-stage .ink-delay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 9px;
+
+  .ink-delay {
+    flex: 1;
+    height: 80px;
   }
 }
 
@@ -292,7 +403,43 @@ $ink-launcher-icon: 120px !default;
   }
 }
 
-.deck-stage .ink-btn.active,
+// The rail's own buttons, sized for a thumb. They share out whatever height the
+// panel has beyond their square minimum, so a taller stage gives each of them a
+// taller target rather than leaving a gap at the ends. The rows in the tray and
+// the selection actions are not children of the rail and keep the plain size.
+.deck-stage > .ink-panel > .ink-btn,
+.deck-stage > .ink-panel > .ink-swatch {
+  // From a basis of nothing, so a swatch and a tool come out the same height
+  // whatever each holds.
+  flex: 1 1 0;
+  width: $ink-rail-button-width;
+  height: auto;
+  min-height: $ink-button-size;
+
+  .ink-across > & {
+    width: auto;
+    height: $ink-rail-button-width;
+    min-width: $ink-button-size;
+    min-height: 0;
+  }
+
+  svg {
+    width: $ink-rail-icon;
+    height: $ink-rail-icon;
+  }
+}
+
+// The tool in hand wears a ring in the colour it will draw, the way a chosen
+// swatch already does. It is drawn inside the button: the rail is 180px across
+// and a button 150px, so a ring outside it would sit on the panel's edge.
+// A filled block would also be $ink-accent, which is the Blue swatch exactly --
+// the mark for "this tool" cannot be one of the five colours it draws in.
+.deck-stage .ink-btn.active {
+  box-shadow: inset 0 0 0 7px var(--ink-ring, #{$ink-ring});
+}
+
+// The labelled rows in the tray are not the rail: nothing there draws, so
+// there is no colour to carry and the plain fill still reads best.
 .deck-stage .ink-option.active {
   background: $ink-accent;
   color: #fff;
@@ -330,6 +477,72 @@ $ink-launcher-icon: 120px !default;
   }
 }
 
+// The store filling up stops the ink being kept while it stays on screen, so
+// the notice sits beside the rail where the pen already is, and stays until a
+// save succeeds.
+.deck-stage .ink-warning {
+  position: absolute;
+  bottom: 0;
+  right: calc(100% + 24px);
+  width: 900px;
+  padding: 24px 30px;
+  border-radius: 24px;
+  background: #fff3cd;
+  box-shadow: 0 6px 36px rgba(0, 0, 0, 0.25);
+  color: #6b4d00;
+  font-size: 48px;
+  line-height: 1.3;
+  text-align: left;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// The tray, the selection actions and the storage notice open on whichever
+// side of the rail faces into the stage, which placePanel() says as
+// `data-open`. The rules above are the rail on the right, opening leftwards.
+.deck-stage > .ink-panel[data-open="right"] {
+  .ink-more,
+  .ink-selection-actions,
+  .ink-warning {
+    right: auto;
+    left: calc(100% + #{$ink-dock-margin});
+  }
+}
+
+.deck-stage > .ink-panel[data-open="up"],
+.deck-stage > .ink-panel[data-open="down"] {
+  .ink-more,
+  .ink-selection-actions {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .ink-warning {
+    right: 0;
+  }
+}
+
+.deck-stage > .ink-panel[data-open="up"] {
+  .ink-more,
+  .ink-selection-actions,
+  .ink-warning {
+    top: auto;
+    bottom: calc(100% + #{$ink-dock-margin});
+  }
+}
+
+.deck-stage > .ink-panel[data-open="down"] {
+  .ink-more,
+  .ink-selection-actions,
+  .ink-warning {
+    top: calc(100% + #{$ink-dock-margin});
+    bottom: auto;
+  }
+}
+
 // Selection actions are close to the lasso tool without making the main rail
 // permanently taller. Paste stays here after a slide change; Copy and Delete
 // enable as soon as a lasso encloses ink.
@@ -352,10 +565,17 @@ $ink-launcher-icon: 120px !default;
 
 .deck-stage .ink-more-title {
   padding: 0 15px 12px;
-  color: rgba(0, 0, 0, 0.58);
-  font-size: 36px;
+  color: rgba(0, 0, 0, 0.72);
+  font-size: 48px;
   font-weight: 600;
   letter-spacing: 0.02em;
+  text-align: left;
+}
+
+.deck-stage .ink-version {
+  padding: 0 15px;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 36px;
   text-align: left;
 }
 
@@ -364,8 +584,12 @@ $ink-launcher-icon: 120px !default;
   align-items: center;
   justify-content: space-between;
 
+  // The SVG scales to its own box, so the width it reports is only as legible
+  // as the box is tall: at the intrinsic 22px it renders a few pixels high on a
+  // fitted deck.
   .ink-nib {
     flex: 1;
+    height: 80px;
   }
 }
 
@@ -406,12 +630,16 @@ $ink-launcher-icon: 120px !default;
   cursor: default;
 }
 
+.deck-stage .ink-option[hidden] {
+  display: none;
+}
+
 // Each swatch shows its colour as a dot; the button's `color` is set inline by
 // annotate.js, so the dot and its selection ring both just use currentColor.
 .deck-stage .ink-swatch::before {
   content: "";
-  width: 51px;
-  height: 51px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: currentColor;
 }
@@ -419,77 +647,17 @@ $ink-launcher-icon: 120px !default;
   box-shadow: 0 0 0 9px #fff, 0 0 0 15px currentColor;
 }
 
-// The full-screen button continues reveal's bottom-left menu control. Both use
-// the same bottom offset, so their icon boxes share a baseline.
-// Quarto's hamburger is a separate fixed element that it sizes for a browser
-// page, not for this canvas, so on the stage it comes out a fraction of the
-// launchers beside it. Give it the same origin and the same box.
-.reveal .slide-menu-button {
-  position: fixed !important;
-  left: 24px !important;
-  bottom: 24px !important;
-  width: $ink-launcher-size;
-  height: $ink-launcher-size;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  // The bars are not an icon font: Quarto draws them as a background image on
-  // `::before`, boxed at 1rem, so `font-size` leaves them alone and the box has
-  // to be set directly.
-  i.fas::before,
-  i::before {
-    width: $ink-launcher-icon;
-    height: $ink-launcher-icon;
-    background-size: $ink-launcher-icon $ink-launcher-icon;
-  }
-}
-
-.deck-stage > .ink-launchers {
-  // In authored page units, like the panel. A rem here would follow the deck's
-  // root font size rather than the button's own scale.
-  --ink-button: #{$ink-launcher-size};
-
-  position: absolute;
-  left: 24px;
-  bottom: 24px;
-  z-index: 30;
-  display: flex;
-  &.ink-offset {
-    // Continue immediately after reveal's 2.2rem menu button. The two icons
-    // have their own internal whitespace, so a CSS gap here looks much wider
-    // than the gap between the hamburger's bars.
-    left: calc(24px + var(--ink-button));
-  }
-}
-
+// The row itself, and the box and colour of a button in it, come from the
+// stage: this is only what the pen adds to one.
 .deck-stage .ink-toggle {
-  display: grid;
-  place-items: center;
-  width: var(--ink-button);
-  height: var(--ink-button);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: $link-color; // the colour Quarto gives its other corner buttons
-  cursor: pointer;
-
-  // Deep enough to read as pressed next to the other corner buttons, without
-  // leaving their colour family.
+  // Deep enough to read as pressed next to the button beside it, without
+  // leaving its colour family.
   &.active {
     color: var(--r-link-color-dark);
   }
 
-  // The hamburger's bars are wider than they are tall, so matching their height
-  // leaves these square icons looking small beside it. These sizes match its
-  // width instead, which also lands the 1.7-unit strokes on the thickness of
-  // its bars. The pen fills more of its viewBox than the full-screen brackets
-  // do, so it is drawn a little smaller.
-  svg {
-    width: $ink-launcher-icon;
-    height: $ink-launcher-icon;
-  }
-
+  // The pen fills more of its viewBox than the stage's full-screen brackets do,
+  // so it is drawn a little smaller to sit level with them.
   &.ink-pen svg {
     width: $ink-launcher-icon * 0.97;
     height: $ink-launcher-icon * 0.97;
@@ -504,22 +672,27 @@ $ink-launcher-icon: 120px !default;
 // is the same story — one layer, a whole grid of slides — so hide it there too.
 .print-pdf {
   .ink-panel,
-  .ink-launchers,
+  .deck-launchers,
   .ink-guide,
   .ink-layer,
   .ink-overview-layer,
   .ink-selection-layer,
+  .ink-laser,
   .ink-surface,
   .ink-text-editor {
     display: none !important;
   }
 }
-.reveal.overview {
+// The layers hang off the stage, which is an *ancestor* of `.reveal`, so a
+// `.reveal.overview` descendant rule never reaches them.
+.reveal.overview,
+.deck-stage:has(.reveal.overview) {
   .ink-panel,
-  .ink-launchers,
+  .deck-launchers,
   .ink-guide,
   .ink-layer,
   .ink-selection-layer,
+  .ink-laser,
   .ink-surface,
   .ink-text-editor {
     display: none !important;
@@ -551,6 +724,18 @@ $ink-launcher-icon: 120px !default;
   }
 }
 
+// The print view a `print` export is made from: laid out at this window's
+// size and never seen.
+.ink-export {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 // Offers the browser dialog again if it is dismissed. This is screen chrome,
 // not slide content, and the print media rule below keeps it out of the PDF.
 .ink-print-bar {
@@ -579,11 +764,12 @@ $ink-launcher-icon: 120px !default;
 }
 @media print {
   .ink-panel,
-  .ink-launchers,
+  .deck-launchers,
   .ink-guide,
   .ink-layer,
   .ink-overview-layer,
   .ink-selection-layer,
+  .ink-laser,
   .ink-surface,
   .ink-text-editor {
     display: none !important;
@@ -594,25 +780,20 @@ $ink-launcher-icon: 120px !default;
   }
 }
 
-// The scroll view is disabled in annotate.js; drop its menu entry too.
-.slide-menu-item:has(a[onclick*="toggleScrollView"]),
-.slide-tool-item:has(a[onclick*="toggleScrollView"]) {
-  display: none;
-}
-
 // The audience view is on a projector, so it carries no controls at all: the
 // annotation panel and its corner buttons are for the presenting device, and
-// reveal's own arrows and progress bar would only invite someone to click them.
-// The ink itself stays, since showing it is the whole point of that view.
+// reveal's own arrows would only invite someone to click them. The progress
+// bar stays as a gauge, with its click taken away. The ink itself stays, since
+// showing it is the whole point of that view.
 // `multiplex-audience` is set on <html> by the multiplex plugin.
 .multiplex-audience {
   .deck-stage > .ink-panel,
-  .deck-stage > .ink-launchers,
-  .reveal .controls,
-  .reveal .progress,
-  .reveal .slide-menu-button {
+  .deck-stage > .deck-launchers,
+  .reveal .controls {
     display: none !important;
   }
+
+  .reveal .progress { pointer-events: none; }
 
   // The pointer has no job on this screen.
   .deck-stage > .ink-surface { pointer-events: none !important; }
@@ -623,41 +804,84 @@ $ink-launcher-icon: 120px !default;
 // a projected one it puts the row -- and the panel and the pointer it opens --
 // back, for when that screen is the only one to hand.
 .ink-chrome-off {
-  .deck-stage > .ink-launchers,
-  .reveal .slide-menu-button {
+  .deck-stage > .deck-launchers {
     display: none !important;
   }
 }
 
 .multiplex-audience.ink-chrome-on {
   .deck-stage > .ink-panel.active,
-  .deck-stage > .ink-launchers,
-  .reveal .slide-menu-button {
+  .deck-stage > .deck-launchers {
     display: flex !important;
   }
 
   .deck-stage > .ink-surface.drawing { pointer-events: auto !important; }
 }
 
-// Shown only when the presenting device is on a different deck, so the slides
-// deliberately stop following. Small and low-contrast: it is projected.
-.multiplex-notice {
+// Every audience-window message: bottom centre, half the slide text size.
+%multiplex-pill {
   position: fixed;
   left: 50%;
   bottom: 42px;
   transform: translateX(-50%);
   z-index: 60;
-  display: none;
-  padding: 12px 36px;
+  padding: 0.3em 0.9em;
   border-radius: 2997px;
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
-  font-size: 39px;
+  font-size: calc(var(--r-main-font-size, 39px) * 0.5 * var(--chip-scale, 1));
   font-family: sans-serif;
 }
 
-// The scroll view is disabled in annotate.js; drop its menu entry too.
-.slide-menu-item:has(a[onclick*="toggleScrollView"]),
-.slide-tool-item:has(a[onclick*="toggleScrollView"]) {
+// Which mode the window opened in, said once and then taken away by
+// multiplex.js: a projected screen is not to carry a permanent caption.
+.multiplex-mode {
+  @extend %multiplex-pill;
+  animation: multiplex-mode-out 4s ease-in forwards;
+}
+
+@keyframes multiplex-mode-out {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+// The one control an audience window has: it appears when the window has been
+// moved by hand and is no longer following, and goes away when it is.
+.multiplex-detached {
+  @extend %multiplex-pill;
+  z-index: 61;
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.3em 0.45em 0.3em 0.9em;
+
+  &[hidden] { display: none; }
+
+  button {
+    padding: 0.15em 0.75em;
+    border: 0;
+    border-radius: 2997px;
+    background: #fff;
+    color: #000;
+    font: inherit;
+    cursor: pointer;
+  }
+}
+
+// Shown only when the presenting device is on a different deck, so the slides
+// deliberately stop following. Small and low-contrast: it is projected.
+.multiplex-notice {
+  @extend %multiplex-pill;
   display: none;
 }
+
+// Left alone, the window lets its messages go; multiplex.js brings them back.
+.multiplex-quiet {
+  .multiplex-detached,
+  .multiplex-notice {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.6s, visibility 0s 0.6s;
+  }
+}
+

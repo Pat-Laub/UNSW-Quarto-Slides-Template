@@ -17,6 +17,7 @@ contributes:
         - perfect-freehand.min.js
         - annotate-geometry.js
         - annotate-model.js
+        - annotate-codec.js
         - annotate-pdf.js
         - annotate.js
         - annotate-pages.js
@@ -28,10 +29,26 @@ contributes:
           # pad wants; a lecture deck opens as a deck and gets a corner button.
           tools: closed
           pages: false
+          # Where the tool rail starts: right, left, top or bottom. It can
+          # always be dragged by its grip, and lies down along the top or
+          # bottom; where it was left is remembered per deck in this browser.
+          dock: right
+          # Starting nib width, in slide coordinates, and the delay a viewer
+          # holds each packet before drawing it. Both are only defaults: a
+          # width or delay the presenter has already stepped is remembered.
+          penWidth: 5
+          # Width of the laser trail, in slide coordinates.
+          laserWidth: 15
+          delay: 20
           # How the annotated PDF is made. `generate` draws the pages here;
           # `overlay` reads a PDF published beside the deck and writes the ink
           # into it, keeping the deck's own typography. `{deck}` in pdfSource is
-          # this deck's path without its extension.
+          # this deck's path without its extension. `print` has the browser
+          # print reveal's print view of the deck with the ink laid over it, and
+          # is an overlay on an iPad, which prints to A4 regardless. Promises
+          # pushed onto `window.printPending` in the print view are waited for
+          # first. A cancelable `annotate-export` event on the document, with
+          # the mode in its detail, comes before any export.
           pdf: generate
           pdfSource: "{deck}.pdf"
     # The relay that mirrors a presenter's slide position and ink onto the
@@ -44,3 +61,10 @@ contributes:
       script:
         - socket.io.min.js
         - multiplex.js
+      config:
+        # Not `multiplex`: Quarto reserves that key for its own bundled
+        # multiplex plugin, which any deck setting it then loads as well.
+        # A deck sets this as `multiplex-relay:`, the kebab-case spelling
+        # Quarto looks the key up under.
+        multiplexRelay:
+          server: null
