@@ -1,9 +1,23 @@
+<!-- Before adding a fix here, check reveal.js's config options (and Quarto's
+     pass-through of them): a setting is better than a script. -->
 <script>
 // Quarto 1.8 emits a resize callback that reads this name even when
 // `code-annotations: none` caused the declaration itself to be omitted.
 // A window property supplies the missing global binding; if a later Quarto
 // version declares its own lexical variable, that variable simply shadows it.
 window.selectedAnnoteEl = null;
+</script>
+<script>
+// reveal lays out an r-stretch image as soon as its data-src is swapped in; if
+// that image has not loaded yet the layout leaves it at height 0 and nothing
+// re-runs it. Lay out again when such an image finishes loading.
+document.addEventListener('load', function (e) {
+  var el = e.target;
+  if (el.tagName === 'IMG' && el.matches('.reveal .slides section > .r-stretch, .reveal .slides section > .stretch') &&
+      window.Reveal && Reveal.isReady && Reveal.isReady()) {
+    Reveal.layout();
+  }
+}, true);
 </script>
 <script>
 // Immediate URL-hash sync for reveal.js (defeats its replaceState throttle).
@@ -114,6 +128,64 @@ window.selectedAnnoteEl = null;
   }
 
   // Reveal may not be initialised yet when this after-body script runs; wait for it.
+  if (!attach()) {
+    var iv = setInterval(function () { if (attach()) clearInterval(iv); }, 50);
+    setTimeout(function () { clearInterval(iv); }, 10000);
+  }
+})();
+</script>
+<script>
+// Even gutters between overview previews.
+//
+// Reveal lays the overview grid on a pitch of `getComputedSlideSize() + 70`.
+// That size is the inset content frame reveal runs in, and the 70 is a
+// constant in slide units -- neither knows about the card a preview actually
+// draws, which is the whole authored page and 16:9 where the frame is taller.
+// A card sized to fill that pitch therefore leaves 4 slide units of gutter
+// beside it and 150 below it: horizontally the previews touch, and the grid
+// stops reading as separate slides.
+//
+// The pitch is ours to set, because the only zero-argument call to
+// getComputedSlideSize() in reveal is the one overview makes when it activates
+// -- layout and the print view both pass a viewport size -- so wrapping that
+// one case changes the grid and nothing else. Both overview's layout() and its
+// update() (which recentres the current card) read the numbers it derives
+// there, so the selection stays centred with no second correction.
+//
+// The deck instance, not window.Reveal: the global is a facade of bound
+// forwarders, and the overview controller calls the method on the instance it
+// was handed. A plugin's init() is what hands it over.
+(function () {
+  // reveal's own overview spacing, subtracted back out of the pitch we want.
+  var REVEAL_OVERVIEW_MARGIN = 70;
+
+  function setPitch(deck) {
+    var stage = document.querySelector('[data-deck-stage]');
+    if (!stage || typeof deck.getComputedSlideSize !== 'function') return;
+    var inner = deck.getComputedSlideSize;
+    deck.getComputedSlideSize = function (width, height) {
+      if (width !== undefined || height !== undefined) return inner.apply(this, arguments);
+      var stageStyle = getComputedStyle(stage);
+      var read = function (name) { return parseFloat(stageStyle.getPropertyValue(name)); };
+      var cardWidth = read('--deck-overview-card-width');
+      var cardHeight = read('--deck-overview-card-height');
+      var gap = read('--deck-overview-card-gap');
+      var scale = read('--deck-overview-scale') || 1;
+      // No stylesheet, no opinion: leave reveal's own pitch alone.
+      if (!cardWidth || !cardHeight || !gap) return inner.apply(this, arguments);
+      return {
+        width: cardWidth + gap / scale - REVEAL_OVERVIEW_MARGIN,
+        height: cardHeight + gap / scale - REVEAL_OVERVIEW_MARGIN
+      };
+    };
+  }
+
+  function attach() {
+    if (!window.Reveal || !Reveal.registerPlugin) return false;
+    Reveal.registerPlugin({ id: 'slide-stage-overview-pitch', init: setPitch });
+    return true;
+  }
+
   if (!attach()) {
     var iv = setInterval(function () { if (attach()) clearInterval(iv); }, 50);
     setTimeout(function () { clearInterval(iv); }, 10000);
@@ -254,5 +326,28 @@ window.selectedAnnoteEl = null;
       document.body.style.transition = DEFAULT_TRANSITION;
     }
   }, true);
+})();
+</script>
+<script>
+// Keep at most one per-slide footer clone. Quarto's support.js appends one on
+// both `ready` and `slidechanged` but removes only one per change, so a deep
+// link to a footed slide leaves a stale clone behind.
+(function () {
+  var reveal = document.querySelector('.reveal');
+  if (!reveal || !window.MutationObserver) return;
+  function isClone(node) {
+    return node.nodeType === 1 && node.parentNode === reveal &&
+      node.classList.contains('footer') && !node.classList.contains('footer-default');
+  }
+  new MutationObserver(function (records) {
+    var newest = null;
+    records.forEach(function (r) {
+      r.addedNodes.forEach(function (n) { if (isClone(n)) newest = n; });
+    });
+    if (!newest) return;
+    Array.prototype.forEach.call(reveal.children, function (n) {
+      if (n !== newest && isClone(n)) n.remove();
+    });
+  }).observe(reveal, { childList: true });
 })();
 </script>

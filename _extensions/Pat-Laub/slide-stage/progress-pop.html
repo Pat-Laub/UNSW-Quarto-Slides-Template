@@ -1,0 +1,34 @@
+<!-- The slide number rides above the progress bar's leading edge for a moment after each slide change. -->
+<style>
+.reveal .progress .progress-pop {
+  position: absolute; bottom: 100%; margin-bottom: 12px; translate: -50% 0;
+  font: 600 42px/1 system-ui, sans-serif; color: currentColor;
+  opacity: 0; pointer-events: none; transition: opacity 400ms ease;
+}
+.reveal .progress.popping .progress-pop { opacity: 1; transition: opacity 120ms ease; }
+</style>
+<script>
+window.addEventListener('load', () => {
+  const bar = document.querySelector('.reveal .progress');
+  if (!window.Reveal || !bar || Reveal.isPrintView()) return;
+  const pop = bar.appendChild(document.createElement('div'));
+  pop.className = 'progress-pop';
+  const fill = bar.querySelector('span');
+  // Follow the bar only until the fade-out ends.
+  let until = 0, frame = 0;
+  const track = () => {
+    pop.style.left = (100 * new DOMMatrix(getComputedStyle(fill).transform).a) + '%';
+    frame = performance.now() < until ? requestAnimationFrame(track) : 0;
+  };
+  let timer;
+  Reveal.on('slidechanged', e => {
+    if (!e.previousSlide) return;
+    pop.textContent = Reveal.getSlidePastCount() + 1;
+    bar.classList.add('popping');
+    until = performance.now() + 1600;
+    if (!frame) track();
+    clearTimeout(timer);
+    timer = setTimeout(() => bar.classList.remove('popping'), 1200);
+  });
+});
+</script>
