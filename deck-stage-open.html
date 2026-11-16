@@ -109,6 +109,46 @@
     if (request) request.call(shell);
   }
 
+  // The corner rail. The stage owns it because the button in it expands the
+  // shell, which only the stage knows about; a plugin that adds its own control
+  // here (annotate's pen) appends to `stage.deckLaunchers` so the row stays one
+  // row with one origin.
+  var launchers = document.createElement('div');
+  launchers.className = 'deck-launchers';
+  var full = document.createElement('button');
+  full.className = 'deck-launcher deck-launcher-fullscreen';
+  full.title = 'Full screen (f)';
+  full.setAttribute('aria-label', 'Full screen');
+  full.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M4 9V4h5"/><path d="M15 4h5v5"/><path d="M20 15v5h-5"/>' +
+    '<path d="M9 20H4v-5"/></svg>';
+  full.addEventListener('click', fullscreenStage);
+  launchers.appendChild(full);
+  // An iPad has no Esc and no O. Overview is the only way to move more than a
+  // slide at a time, so it gets a button in the row a finger already uses --
+  // and one that stays put inside the grid, since tapping a card to leave also
+  // changes slide.
+  var grid = document.createElement('button');
+  grid.className = 'deck-launcher deck-launcher-overview';
+  grid.title = 'Slide overview (esc)';
+  grid.setAttribute('aria-label', 'Slide overview');
+  grid.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+    '<rect x="3" y="3" width="7" height="7" rx="1"/>' +
+    '<rect x="14" y="3" width="7" height="7" rx="1"/>' +
+    '<rect x="3" y="14" width="7" height="7" rx="1"/>' +
+    '<rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
+  grid.addEventListener('click', function () {
+    // deck-thumbs.html claims this hook when the deck was built with baked
+    // previews; without them the button opens reveal's own live overview.
+    if (stage.deckOverview) stage.deckOverview();
+    else if (window.Reveal && Reveal.toggleOverview) Reveal.toggleOverview();
+  });
+  launchers.appendChild(grid);
+  stage.appendChild(launchers);
+  stage.deckLaunchers = launchers;
+
   // Capture F before Reveal's own handler, which would fullscreen only the
   // inner content frame in embedded mode.
   window.addEventListener('keydown', function (event) {

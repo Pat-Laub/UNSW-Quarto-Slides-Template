@@ -13,9 +13,15 @@ $content-top: 120px !default;
 $content-right: 336px !default;  // 96px gap + the rail
 $content-bottom: 141px !default;
 $rail-width: 240px !default;
+// The corner row is tapped with a finger; 168 authored px is the 44pt Apple
+// asks for once the canvas is scaled down to an iPad.
+$launcher-size: 168px !default;
+$launcher-icon: 120px !default;
 $artwork-inset: 48px !default;
 $content-width: $deck-width - $content-left - $content-right;
 $content-height: $deck-height - $content-top - $content-bottom;
+// Quarto caps code blocks at 500px, sized for reveal's 960x700 slide.
+$code-block-height: $content-height !default;
 
 // 28px x 3: the root size the authored canvas is drawn at.
 $presentation-font-size-root: 84px !default;
@@ -111,7 +117,15 @@ body.quarto-light {
 }
 
 .reveal:not(.overview) .slides {
-  overflow: hidden;
+  clip-path: inset(-#{$content-top} -0.5em -#{$content-bottom} -0.5em);
+}
+
+// Opacity alone leaves neighbouring slides in the browser's text selection.
+// A drag starting beside a heading can then copy every preceding hidden slide.
+// Keep their layout for Reveal, but exclude them from live text selection.
+// Overview, scroll view and PDF output must still expose all their slides.
+html:not(.print-pdf) .reveal:not(.overview):not(.reveal-scroll) .slides section:not(.present) {
+  visibility: hidden;
 }
 
 // Reveal creates these as children of its inset root. Fixed positioning makes
@@ -126,6 +140,7 @@ body.quarto-light {
   left: 0 !important;
   bottom: 0 !important;
   width: #{$deck-width} !important;
+  height: 9px;
 }
 .reveal .slide-number {
   position: fixed !important;
@@ -160,11 +175,6 @@ body.quarto-light {
     right: -#{$content-right - ($rail-width * 0.07)} !important;
     bottom: -#{$content-bottom} !important;
   }
-  .slide-menu-button {
-    position: absolute !important;
-    left: #{24px - $content-left} !important;
-    bottom: #{42.6px - $content-bottom} !important;
-  }
 }
 
 // Neither does overview: reveal puts a `perspective` on `.reveal` while it is
@@ -176,24 +186,37 @@ body.quarto-light {
 }
 
 // Each overview cell shows the whole page, not just Reveal's inner content.
-// Reveal lays the grid out on a hard-coded pitch of content + 70, and that 70
-// is a constant in slide units -- it does not grow with the authored canvas --
-// so a card at the real 3744 would cover its neighbour. The card is therefore
-// the page scaled by 3138/3744, and the content inside it is scaled by that
-// same factor: shrinking only the furniture would leave the content overflowing
-// the card, which crops the heading off the top of every preview. Live and PDF
-// geometry are untouched; this is a navigation thumbnail.
+// The card is the page scaled by 3138/3744: the whole section, content and
+// furniture together, is scaled by that factor. Live and PDF geometry are
+// untouched; this is a navigation thumbnail.
 $ov-scale: 0.83814102564;      // 3138 / 3744
-$ov-card-width: 3138px;        // the widest that clears the pitch of 3142
-$ov-card-height: 1765.125px;   // exactly 16:9, i.e. the page scaled by $ov-scale
+
+// The gap between one card and the next, on both axes. Reveal's own pitch is
+// its slide size plus a hard-coded 70, and its slide size is the content
+// frame, not the card: a 16:9 card as wide as that pitch allows leaves 4 slide
+// units beside it and 150 below it, so the grid reads as a row of touching
+// slides. reveal-fixes.html sets the pitch from this instead. 150 is the
+// gutter reveal's own arithmetic happened to leave vertically, now on both.
+$ov-gap: 150px;
 
 // The card is hung off the content frame's top-left corner, the only anchor
 // overview gives us, so its offsets are the page's own insets scaled down.
-$ov-card-left: -$content-left * $ov-scale;
-$ov-card-top: -$content-top * $ov-scale;
-$ov-rail: $rail-width * $ov-scale;
-$ov-rail-left: ($deck-width - $content-left - $rail-width) * $ov-scale;
-$ov-content-width: $content-width * $ov-scale;
+$ov-card-left: -$content-left;
+$ov-card-top: -$content-top;
+
+// The card is where the authored page goes while overview is open, so anything
+// drawn in page coordinates over a slide -- annotate's ink previews -- has to
+// be told about it: a section is the content frame, which is a different box.
+// Published on the stage next to --deck-width, in the section's own (unscaled)
+// units; the grid's gap is in slide units.
+.deck-stage {
+  --deck-overview-card-left: #{$ov-card-left};
+  --deck-overview-card-top: #{$ov-card-top};
+  --deck-overview-card-width: #{$deck-width};
+  --deck-overview-card-height: #{$deck-height};
+  --deck-overview-card-gap: #{$ov-gap};
+  --deck-overview-scale: #{$ov-scale};
+}
 
 // Cards sit on a tint so the gap between them is visible; the stage's own
 // full-height rail and title artwork would span the whole grid, so they go.
@@ -208,7 +231,13 @@ $ov-content-width: $content-width * $ov-scale;
 .reveal.overview .slides section:not(.stack) {
   isolation: isolate;
   overflow: visible !important;
-  width: #{$ov-content-width} !important;
+}
+
+// The grid as a whole is scaled, not each section: reveal sizes r-stretch
+// figures from a section's own layout, and places the cells with an inline
+// `transform` that a per-section `zoom` or `scale` would also shrink.
+.reveal.overview .slides {
+  scale: $ov-scale;
 }
 
 // Reveal's selection and hover outline hugs the bare content frame, which now
@@ -226,49 +255,44 @@ $ov-content-width: $content-width * $ov-scale;
   position: absolute;
   pointer-events: none;
   top: #{$ov-card-top} !important;
-  height: #{$ov-card-height} !important;
+  height: #{$deck-height} !important;
 }
+// The ring is an `outline`, not a `box-shadow`: a card is the authored page at
+// 3138 x 1765 slide units and a lecture deck lays 80 of them out at once, which
+// is a shadow buffer per card at that size and more than an iPad will give. It
+// killed Safari's web process 1.5-3.5s into overview on an 82-slide deck, and
+// the same deck was steady once these were outlines.
 .reveal.overview .slides section:not(.stack)::before {
   z-index: 0;
   left: #{$ov-card-left} !important;
-  width: #{$ov-card-width} !important;
+  width: #{$deck-width} !important;
   background: $body-bg;
-  box-shadow: 0 0 0 3px rgba($mainColor, 0.18);
+  outline: #{3px / $ov-scale} solid rgba($mainColor, 0.18);
 }
 // The title pentagon, mapped from its inset on the page onto the card: 48px in
-// on three sides and clear of the rail on the fourth, all scaled by $ov-scale.
+// on three sides and clear of the rail on the fourth.
 .reveal.overview .slides section#title-slide::before {
   background:
     // The live artwork's 3744x2106 coordinates mapped uniformly into the card.
     // The SVG remains 16:9 instead of being stretched to fill the inset.
-    $stage-artwork-image #{$artwork-inset * $ov-scale} 101.83px / 2775.92px 1561.46px no-repeat,
+    $stage-artwork-image #{$artwork-inset} #{101.83px / $ov-scale} / #{2775.92px / $ov-scale} #{1561.46px / $ov-scale} no-repeat,
     $body-bg;
 }
 .reveal.overview .slides section:not(.stack)::after {
   z-index: 2;
-  left: #{$ov-rail-left} !important;
-  width: #{$ov-rail} !important;
+  left: #{$deck-width - $content-left - $rail-width} !important;
+  width: #{$rail-width} !important;
   background: $stage-rail-background !important;
 }
 .reveal.overview .slides section:not(.stack):hover::before {
-  box-shadow: 0 0 0 10px rgba($mainColor, 0.35);
+  outline: #{10px / $ov-scale} solid rgba($mainColor, 0.35);
 }
 .reveal.overview .slides section:not(.stack).present::before {
-  box-shadow: 0 0 0 10px $link-color;
+  outline: #{10px / $ov-scale} solid $link-color;
 }
-// The card is the page scaled by $ov-scale, so the content must shrink by the
-// same factor to sit where it does on the page. `zoom` rather than a transform:
-// the children are separate boxes in normal flow, and only zoom moves each one
-// with its own scaled size instead of shrinking it about its own corner. Zoom
-// alone would leave an auto-width block still filling the frame -- it refills
-// its containing block at the smaller scale -- which is why the frame above is
-// narrowed to the scaled content width. Restating a width on the children
-// instead would stretch the shrink-to-fit ones: a bulleted list is an
-// inline-block sized to its longest line, not to the frame.
 .reveal.overview .slides section:not(.stack) > * {
   position: relative;
   z-index: 1;
-  zoom: $ov-scale;
 }
 .reveal.overview .slide-logo {
   display: none !important;
@@ -350,7 +374,7 @@ html.reveal-print {
 // JavaScript — but only on slides it has actually laid out. Slides not yet
 // visited never get that offset, so in overview mode their text sits at the
 // top of the preview cell instead of the middle. While overview is open,
-// centre them with flexbox instead: the section spans the full cell height
+// centre them with flexbox instead: the section is the scaled content frame
 // and flex does the centring, with `top: 0` neutralising any JS offset
 // already applied to visited slides (`!important` beats inline styles). The
 // `display` override also beats reveal's inline `display` used for lazy
@@ -361,7 +385,6 @@ html.reveal-print {
   flex-direction: column;
   justify-content: center;
   top: 0 !important;
-  height: 100%;
 }
 
 // The logo and slide number occupy the bottom and top of the in-slide bar.
@@ -379,19 +402,34 @@ html.reveal-print {
   bottom: auto !important;
 }
 
-// Reveal's navigation and progress elements are viewport-sized siblings of the
-// slide, so explicitly pull their active edges back to the slide rectangle.
-.reveal .controls .navigate-left {
-  left: 30px !important;
+// Reveal already clusters the arrows in the bottom-right corner; pinning each
+// one to its own edge of the stage left them a screen apart and, at reveal's
+// 10px default, 36 slide units across -- a fifth of a launcher, and far too
+// small to hit with a finger mid-lecture. Keep reveal's arrangement and size it
+// instead: every part of the arrow is drawn in `em` off a 3.6em box, so the
+// font size is the only lever, and matching `$launcher-size` puts the arrows on
+// the same footing as the launcher row in the opposite corner.
+.reveal .controls {
+  // Every part of reveal's arrow is drawn in `em` off a 3.6em box, so the font
+  // size is the only lever on it. Match $launcher-icon rather than the larger
+  // $launcher-size box the launchers are tapped through: it is the mark on the
+  // screen that has to look the same weight, not the target behind it.
+  font-size: calc(#{$launcher-icon} / 3.6) !important;
+}
+
+// The arrows finish the bottom row the launchers start, and stop a gap short
+// of the rail so they never sit on it or on the logo standing in it.
+.reveal .controls .navigate-left,
+.reveal .controls .navigate-right {
+  top: auto !important;
+  bottom: calc(24px + (#{$launcher-size} - #{$launcher-icon}) / 2) !important;
+  left: auto !important;
 }
 .reveal .controls .navigate-right {
-  right: 6px !important;
+  right: #{$rail-width + 24px} !important;
 }
-.reveal .controls .navigate-up {
-  top: 12px !important;
-}
-.reveal .controls .navigate-down {
-  bottom: 69px !important;
+.reveal .controls .navigate-left {
+  right: #{$rail-width + 24px + $launcher-icon} !important;
 }
 
 #title-slide {
@@ -403,6 +441,24 @@ html.reveal-print {
 
 .reveal h1 {
   text-align: center;
+}
+
+// Quarto's footer CSS is written in browser pixels for a deck a third of this
+// one's size, so an unstyled `::: footer` lands at a third of the intended
+// size and hugs the bottom edge. Both values are that CSS scaled to the
+// authored canvas; the element selector is what outweighs a rule of equal
+// specificity that Quarto loads after this stylesheet.
+//
+// Quarto centres the footer with `width: 100%` and no `left`, so like the
+// progress bar it needs anchoring: the percentage resolves against the stage
+// while the absent `left` falls back to a static position inside the inset
+// content frame, which pushes the text right by that inset and hangs the same
+// amount off the other edge.
+.reveal div.footer {
+  left: 0;
+  bottom: 54px;
+  width: #{$deck-width};
+  font-size: 54px;
 }
 
 // A semantic slide footnote is page chrome, like Beamer's footnote area, not
@@ -427,7 +483,7 @@ html.reveal-print {
 // Quarto's live footer clone is viewport-fixed, which would otherwise span the
 // whole overview. In overview, hide that clone and reveal each slide's own
 // source footer inside its 16:9 preview cell instead.
-.reveal.overview > .footer.footnote-footer {
+.reveal.overview > .footer {
   display: none !important;
 }
 
@@ -444,6 +500,23 @@ html.reveal-print {
 .reveal.overview .slides section:not(.stack) > .footer.footnote-footer::before {
   width: 840px;
   margin-bottom: 12px;
+}
+
+// The same swap for a plain footer, which is centred on the card rather than
+// ranged left under a rule. A card is scaled by $ov-scale as a whole, so
+// these are the live rule's own page coordinates undoing the frame's insets,
+// not card coordinates: scaled values here would be scaled a second time and
+// land the text left of centre.
+.reveal.overview .slides section:not(.stack) > .footer {
+  display: block !important;
+  position: absolute;
+  left: -#{$content-left};
+  // `bottom` is measured from the frame's lower edge, which sits the page's
+  // bottom inset above the page's own.
+  bottom: #{54px - $content-bottom};
+  width: #{$deck-width};
+  text-align: center;
+  font-size: 54px;
 }
 
 // Keep unordered-list bullets inside the same transformed box as their text.
@@ -495,29 +568,49 @@ html.reveal-print {
   text-align: center !important;
 }
 
-/* Ordered markers have the same WebKit baseline problem as bullets when the
-   first child of an item is a tall display equation: the native marker is
-   vertically centred against the item's line box.  Paint the marker in the
-   item's coordinate system instead, so `a.`, `b.`, etc. stay at the top of
-   every answer regardless of the equation's height.  `counter(list-item)`
+/* Ordered markers get the same treatment as the bullets above, for two
+   reasons.  Reveal's 1em left margin is outside the list's own box, so a native
+   outside marker is painted beyond it: on a list flush with the frame's left
+   edge the clipped `.slides` box slices the markers in half, and a serif `b.`
+   renders as `).`.  WebKit also centres the native marker against the item's
+   line box, which drops `a.`, `b.` to the middle of an answer whose first child
+   is a tall display equation.  Trading the margin for equal padding keeps the
+   text where it was and brings the marker inside the box.  `counter(list-item)`
    honours the HTML `start`/`type` attributes emitted by Quarto. */
-.reveal .slide ol:has(.math.display),
-.reveal .slide ol:has(.katex-display) {
+.reveal .slide ol {
   list-style: none;
+  margin-left: 0;
+  padding-left: 1em;
 }
-.reveal .slide ol:has(.math.display) > li,
-.reveal .slide ol:has(.katex-display) > li {
+.reveal .slide ol > li {
   position: relative;
 }
-.reveal .slide ol:has(.math.display) > li::before,
-.reveal .slide ol:has(.katex-display) > li::before {
-  content: counter(list-item, lower-alpha) ".";
+/* Like a native marker, ours is right-aligned a fixed gap before the text, so a
+   wide one such as `iii.` grows leftward into the gutter, not into the text.
+   Roman numerals get a wider gutter to hold them. */
+.reveal .slide ol[type="i"] {
+  padding-left: 2em;
+}
+.reveal .slide ol > li::before {
+  content: counter(list-item, decimal) ".";
   position: absolute;
   top: 0;
-  left: -1em;
-  width: 1em;
-  text-align: left;
+  right: 100%;
+  padding-right: 0.3em;
+  white-space: nowrap;
   color: var(--r-main-color);
+}
+/* Attribute values are matched case-insensitively in HTML, so `[type="A"]`
+   would also claim Quarto's `type="a"` lists and turn `b.` into `B.`.  The `s`
+   flag that would fix that is still unimplemented in Chrome, which drops the
+   whole rule -- markers then silently fall back to `2.`, `3.`.  Lower-case
+   alphabetical and roman lists are therefore the ones we can key on; an
+   upper-case list renders lower-case. */
+.reveal .slide ol[type="a"] > li::before {
+  content: counter(list-item, lower-alpha) ".";
+}
+.reveal .slide ol[type="i"] > li::before {
+  content: counter(list-item, lower-roman) ".";
 }
 
 // The progress bar along the bottom is a *button* as well as a gauge: reveal
@@ -528,4 +621,171 @@ html.reveal-print {
 // it stops the `::after` strip from being hit too.
 .reveal .progress {
   pointer-events: none;
+}
+
+// The corner rail, in authored page units like the rest of the stage: a length
+// meant for a browser-sized page comes out at a fraction of everything beside
+// it once the stage is scaled to the window. Plugins append their own controls
+// to this row rather than opening a second one in the same corner.
+.deck-stage > .deck-launchers {
+  --deck-launcher: #{$launcher-size};
+
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  z-index: 30;
+  display: flex;
+}
+
+.deck-stage .deck-launcher {
+  display: grid;
+  place-items: center;
+  width: var(--deck-launcher);
+  height: var(--deck-launcher);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $link-color;
+  cursor: pointer;
+
+  svg {
+    width: $launcher-icon;
+    height: $launcher-icon;
+  }
+}
+
+// Presentation controls, not content: keep them out of the printed deck and out
+// of the overview grid, where one row would sit over a whole grid of slides.
+.print-pdf .deck-launchers {
+  display: none !important;
+}
+
+// Overview covers the page with a grid of slides, so the row stands down there
+// -- all but the button that opened it, which is the way back out that does not
+// also change slide.
+.deck-stage-overview > .deck-launchers > .deck-launcher:not(.deck-launcher-overview) {
+  display: none !important;
+}
+
+// The thumbnail overview, deck-thumbs.html.
+//
+// Everything here is in screen pixels, not slide units: the panel is a sibling
+// of the stage inside the viewport shell, outside the fit transform entirely.
+// That is the whole point of it. Reveal's overview draws each cell as the
+// authored 3744 x 2106 page and lets the transform shrink it, so fifty cells
+// are fifty 4K surfaces; these are ~520px JPEGs shown at the size they are.
+//
+// Inside the shell rather than the body so it survives fullscreen, which
+// deck-stage-open.html requests on the shell.
+$thumb-width: clamp(140px, 17vw, 260px);
+
+.deck-thumbs {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  overflow: auto;
+  // The grid scrolls, the deck behind it does not.
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  container-type: size;
+  background: #e8e9e9;
+}
+
+.deck-thumbs[hidden] {
+  display: none;
+}
+
+.deck-thumbs-grid {
+  display: grid;
+  // Columns are the deck's stacks and rows the slides within them, so the grid
+  // reads as the same 2-D map reveal's overview draws. Sized rather than
+  // auto-fitted: a column has to stay a column even when it is one slide tall.
+  grid-auto-columns: #{$thumb-width};
+  grid-auto-rows: max-content;
+  gap: 18px;
+  justify-content: start;
+  align-content: start;
+  width: max-content;
+  // Room to scroll any card, even one at the grid's edge, to the middle of the
+  // panel, as reveal's own overview centres the current slide.
+  padding: calc(50cqh - #{$thumb-width} * 9 / 32) calc(50cqw - #{$thumb-width} / 2);
+}
+
+.deck-thumb {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  outline: 1px solid rgba($mainColor, 0.22);
+  background: $body-bg;
+  cursor: pointer;
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
+.deck-thumb.is-current {
+  outline: 3px solid $link-color;
+}
+
+.deck-thumb-number {
+  position: absolute;
+  right: 0;
+  top: 0;
+  padding: 3px 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  background: rgba($mainColor, 0.75);
+}
+
+.deck-thumb.is-current .deck-thumb-number {
+  background: $link-color;
+}
+
+// The way back out that does not also change slide, mirroring the role the
+// grid button plays inside reveal's own overview.
+// Bottom-left, where the launcher row the grid button lives in sits, so the
+// way out is under the finger that opened it. Fixed rather than absolute: the
+// panel itself is the scroller, and nothing between here and the viewport is
+// transformed, so this stays put while the grid moves under it.
+.deck-thumbs-close {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $mainColor;
+  cursor: pointer;
+
+  svg {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+// The launcher row belongs to the deck, and the panel covers the deck. Its own
+// close button is the way out while the grid is up.
+.deck-stage.deck-stage-thumbs > .deck-launchers {
+  display: none !important;
+}
+
+.print-pdf .deck-thumbs {
+  display: none !important;
+}
+
+// Quarto pads code blocks 6px 9px, sized for reveal's 960x700 slide.
+.reveal pre.sourceCode code {
+  padding: 0.4em 0.7em;
 }

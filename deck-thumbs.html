@@ -1,0 +1,233 @@
+<script>
+// The overview grid, drawn from prebaked pictures instead of live slides.
+//
+// Reveal's own overview keeps every slide in the DOM and lays the deck out as
+// a scaled 2-D map of sections. Each cell is therefore the authored canvas --
+// 3744 x 2106 here -- and a lecture deck is fifty of them at once. On an iPad
+// that is not a slow grid, it is a dead tab: the WebContent process was being
+// killed around 5.4 GB, reliably, once you were a few stacks into a module.
+// Everything tried against that (leaving reveal's lazy loading alone, standing
+// cheap placeholders where it had unloaded a slide, taking the off-screen
+// cards out of rendering) either still crashed or left the map full of holes,
+// because the cost is in having the cells at all rather than in their content.
+//
+// So this does not scale slides down; it shows photographs of them. A build
+// step beside the deck writes `<deck>.thumbs/001.jpg ...`, one per slide in
+// document order, and the panel below is a plain scroller of <img> tags at
+// their natural size. No section is transformed, unloaded or even touched, and
+// `loading="lazy"` means the browser decodes only the cards on screen -- the
+// same machinery any photo grid on the device already relies on.
+//
+// The pictures are of the slide with its fragments revealed and without any
+// ink drawn on it since: a map of the deck, not a mirror of its current state.
+//
+// Where there is no `.thumbs` directory -- a deck built without the step, and
+// every fixture deck in this repo's own tests -- nothing is installed and the
+// grid button falls through to `Reveal.toggleOverview()` exactly as before.
+(function () {
+  var stage = document.querySelector('[data-deck-stage]');
+  if (!stage) return;
+  var shell = stage.parentElement;
+
+  // The leaf sections, in document order, which is the order the thumbnails
+  // are numbered in. Not Reveal.getSlides(): that omits slides marked
+  // data-visibility="uncounted" (Quarto's incremental repeats), which the
+  // print capture the pictures come from does include, so using it would slide
+  // every thumbnail after the first repeat one cell out of place.
+  function columns() {
+    var slides = document.querySelector('.reveal .slides');
+    if (!slides) return [];
+    return [].filter.call(slides.children, function (child) {
+      return child.tagName === 'SECTION';
+    }).map(function (top) {
+      var nested = [].filter.call(top.children, function (child) {
+        return child.tagName === 'SECTION';
+      });
+      return nested.length ? nested : [top];
+    });
+  }
+
+  function base() {
+    // `<deck>.html` -> `<deck>.thumbs/`. Only the final extension goes, so a
+    // Quarto deck published as `module-1-1.slides.html` reads from
+    // `module-1-1.slides.thumbs/`.
+    return location.pathname.replace(/\.html$/, '') + '.thumbs/';
+  }
+
+  var manifest = null;
+  function load() {
+    if (manifest) return manifest;
+    manifest = fetch(base() + 'index.json', { cache: 'no-cache' })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .catch(function () { return null; });
+    return manifest;
+  }
+
+  var panel = null;
+  var cards = [];
+
+  function build(count) {
+    panel = document.createElement('div');
+    panel.className = 'deck-thumbs';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Slide overview');
+    panel.hidden = true;
+
+    var grid = document.createElement('div');
+    grid.className = 'deck-thumbs-grid';
+    panel.appendChild(grid);
+
+    var n = 0;
+    columns().forEach(function (column, h) {
+      column.forEach(function (section, v) {
+        var index = n++;
+        if (index >= count) return;
+        var card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'deck-thumb';
+        card.style.gridColumn = String(h + 1);
+        card.style.gridRow = String(v + 1);
+
+        var image = document.createElement('img');
+        image.loading = 'lazy';
+        image.decoding = 'async';
+        // The picture is the 16:9 authored page. Stating the ratio rather than
+        // pixel dimensions lets the card size come from the stylesheet while
+        // the box still exists before the image arrives, which is what keeps
+        // the grid from reflowing as it scrolls and what lazy loading needs in
+        // order to know which cards are off screen.
+        image.style.aspectRatio = '16 / 9';
+        image.alt = '';
+        image.src = base() + String(index + 1).padStart(3, '0') + '.jpg';
+        card.appendChild(image);
+
+        var number = document.createElement('span');
+        number.className = 'deck-thumb-number';
+        number.textContent = String(index + 1);
+        card.appendChild(number);
+
+        card.addEventListener('click', function () {
+          close();
+          Reveal.slide(h, column.length > 1 ? v : undefined);
+        });
+        grid.appendChild(card);
+        cards.push({ card: card, section: section });
+      });
+    });
+
+    var shut = document.createElement('button');
+    shut.type = 'button';
+    shut.className = 'deck-thumbs-close';
+    shut.title = 'Close overview (esc)';
+    shut.setAttribute('aria-label', 'Close overview');
+    shut.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M5 5l14 14"/><path d="M19 5L5 19"/></svg>';
+    shut.addEventListener('click', close);
+    panel.appendChild(shut);
+
+    shell.appendChild(panel);
+  }
+
+  function isOpen() { return panel && !panel.hidden; }
+
+  function mark() {
+    var current = Reveal.getCurrentSlide();
+    var here = null;
+    cards.forEach(function (entry) {
+      var present = entry.section === current;
+      entry.card.classList.toggle('is-current', present);
+      if (present) here = entry.card;
+    });
+    return here;
+  }
+
+  function open() {
+    if (!panel || isOpen()) return;
+    var here = mark();
+    panel.hidden = false;
+    stage.classList.add('deck-stage-thumbs');
+    if (here) here.scrollIntoView({ block: 'center', inline: 'center' });
+  }
+
+  function close() {
+    if (!isOpen()) return;
+    panel.hidden = true;
+    stage.classList.remove('deck-stage-thumbs');
+  }
+
+  function toggle() { isOpen() ? close() : open(); }
+
+  // Reveal's overview steps a card at a time, keeping the row where the next
+  // column is long enough. Left to reveal, a linear deck would take these keys
+  // as next/prev and step fragments behind the panel instead.
+  var moves = {
+    arrowleft: [-1, 0], h: [-1, 0], arrowright: [1, 0], l: [1, 0],
+    arrowup: [0, -1], k: [0, -1], arrowdown: [0, 1], j: [0, 1]
+  };
+
+  function move(by) {
+    var at = Reveal.getIndices();
+    var h = at.h + by[0], v = (at.v || 0) + by[1];
+    var column = columns()[h];
+    if (!column || v < 0 || (by[1] && v >= column.length)) return;
+    Reveal.slide(h, Math.min(v, column.length - 1));
+  }
+
+  function install() {
+    return load().then(function (index) {
+      if (!index || !index.count) return false;
+      // The pictures are addressed by position, so a deck rebuilt without its
+      // thumbnails rebuilt would point every card at the wrong slide. Cheaper
+      // to show reveal's own grid than a confident, wrong map.
+      var slides = columns().reduce(function (total, column) {
+        return total + column.length;
+      }, 0);
+      if (slides !== index.count) {
+        console.warn('deck-thumbs: ' + index.count + ' thumbnails for ' +
+          slides + ' slides; falling back to the live overview.');
+        return false;
+      }
+      build(index.count);
+      // Claiming the stage's overview hook is what takes the grid button off
+      // Reveal.toggleOverview; deck-stage-open.html calls this if it is set.
+      stage.deckOverview = toggle;
+      // Whatever moved the deck -- these keys, or reveal's own Home, End and
+      // shifted arrows -- the highlight follows it.
+      Reveal.on('slidechanged', function () {
+        if (!isOpen()) return;
+        var here = mark();
+        if (here) here.scrollIntoView({ block: 'center', inline: 'center' });
+      });
+      return true;
+    });
+  }
+
+  // Reveal owns Esc and O. Capture them first once the panel is installed, so
+  // the keyboard opens the same grid the button does rather than the live one,
+  // and while it is open take the arrows and h/j/k/l to move around it.
+  window.addEventListener('keydown', function (event) {
+    if (!panel) return;
+    var target = event.target;
+    var key = event.key === 'Escape' ? 'escape' : event.key.toLowerCase();
+    var by = isOpen() && moves.hasOwnProperty(key) && moves[key];
+    if ((key !== 'escape' && key !== 'o' && !by) || event.altKey || event.ctrlKey ||
+        event.metaKey || event.shiftKey || (target && (target.isContentEditable ||
+        /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    by ? move(by) : toggle();
+  }, true);
+
+  function attach() {
+    if (!window.Reveal || !Reveal.on || !Reveal.isReady || !Reveal.isReady()) return false;
+    install();
+    return true;
+  }
+
+  if (!attach()) {
+    var timer = setInterval(function () { if (attach()) clearInterval(timer); }, 25);
+    setTimeout(function () { clearInterval(timer); }, 10000);
+  }
+})();
+</script>
