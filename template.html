@@ -513,7 +513,7 @@ x^n + y^n = z^n
 <div class="columns">
 <div class="column" style="width:45%;">
 <p>It is quite easy to show code and their results. E.g. here is some Python code:</p>
-<div id="14924254" class="cell" data-execution_count="1">
+<div id="ff018b3c" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="" aria-label="1"></a>[x<span class="op">**</span><span class="dv">2</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>[0, 1, 4, 9, 16]</code></pre>
@@ -521,7 +521,7 @@ x^n + y^n = z^n
 </div>
 <p>Also you can hide the code and just show the generated output/figure.</p>
 </div><div class="column" style="width:55%;">
-<div id="56bebeef" class="cell" data-execution_count="2">
+<div id="341ab0ae" class="cell" data-execution_count="2">
 <div class="cell-output cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure>
@@ -1369,7 +1369,28 @@ x^n + y^n = z^n
     </script>
     <script>
     (function () {
-      if (!/print-pdf/gi.test(window.location.search)) return;
+      // Cmd/Ctrl+P on the live deck prints the print view instead: loaded out of
+      // sight in a frame, it opens the dialog itself once its pages are laid out.
+      if (!/print-pdf/gi.test(window.location.search)) {
+        window.addEventListener('keydown', function (event) {
+          if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey ||
+              event.key.toLowerCase() !== 'p') return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          var old = document.querySelector('iframe.deck-print-frame');
+          if (old) old.remove();
+          var url = new URL(location.href);
+          url.hash = '';
+          url.search = '?print-pdf&pdfMaxPagesPerSlide=1&save-pdf';
+          var frame = document.createElement('iframe');
+          frame.className = 'deck-print-frame';
+          frame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;' +
+            'visibility:hidden;pointer-events:none';
+          frame.src = url.href;
+          document.body.appendChild(frame);
+        }, true);
+        return;
+      }
       function fitPagesToDeck() {
         // Reveal owns the inset frame; the PDF page is the same fixed outer stage
         // used live and by annotations.
@@ -1382,7 +1403,9 @@ x^n + y^n = z^n
         var pageW = 3744, pageH = 2108.16;
         var contentX = 336, contentY = 120, contentW = 3072, contentH = 1845;
         var st = document.createElement('style');
-        st.textContent = '@page{size:' + pageW + 'px ' + pageH + 'px;margin:0}';
+        st.textContent = '@page{size:' + pageW + 'px ' + pageH + 'px;margin:0}' +
+          // A browser set to always show scrollbars would print them on code blocks.
+          '.pdf-page,.pdf-page *{scrollbar-width:none!important}';
         document.head.appendChild(st);
         document.body.style.width = pageW + 'px';
         document.querySelectorAll('.pdf-page').forEach(function (page) {
@@ -1518,7 +1541,25 @@ x^n + y^n = z^n
       // done); poll as a fallback in case Reveal was ready before this ran.
       var done = false;
       function run() {
-        if (!done) { done = true; fitPagesToDeck(); fixSlideNumbers(); placeFooters(); }
+        if (!done) { done = true; fitPagesToDeck(); fixSlideNumbers(); placeFooters(); if (/[?&]save-pdf(&|$)/.test(location.search)) saveAfterLoad(); }
+      }
+      // Loaded by Cmd/Ctrl+P on the live deck: print once fonts and images are in.
+      function saveAfterLoad() {
+        var loaded = document.readyState === 'complete' ? Promise.resolve()
+          : new Promise(function (resolve) { window.addEventListener('load', resolve, { once: true }); });
+        var fonts = document.fonts ? document.fonts.ready : Promise.resolve();
+        var images = Array.prototype.map.call(document.images, function (img) {
+          return img.complete ? null : new Promise(function (resolve) {
+            img.addEventListener('load', resolve, { once: true });
+            img.addEventListener('error', resolve, { once: true });
+          });
+        });
+        Promise.all([loaded, fonts].concat(images)).then(function () {
+          setTimeout(function () {
+            window.print();
+            if (window.frameElement) window.frameElement.remove();
+          }, 0);
+        });
       }
       if (window.Reveal && typeof Reveal.on === 'function') {
         Reveal.on('pdf-ready', run);
