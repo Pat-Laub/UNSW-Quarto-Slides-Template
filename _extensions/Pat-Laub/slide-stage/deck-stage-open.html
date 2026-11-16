@@ -149,6 +149,24 @@
   stage.appendChild(launchers);
   stage.deckLaunchers = launchers;
 
+  // `stage-chrome: auto-hide`: the arrows and this row stay out of sight until
+  // the mouse moves, and go again once it rests anywhere but on them. Keys never
+  // wake them. Only where the pointer can hover: a touch screen has no mouse to
+  // move, and those buttons are how it gets around.
+  var chromeOption = document.querySelector('meta[name="stage-chrome"]');
+  if (chromeOption && chromeOption.content === 'auto-hide' &&
+      window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+    var root = document.documentElement, rest = 0;
+    root.classList.add('stage-chrome-auto-hide');
+    window.addEventListener('mousemove', function (event) {
+      root.classList.add('stage-chrome-awake');
+      clearTimeout(rest);
+      var target = event.target;
+      if (target && target.closest && target.closest('.deck-launchers, .reveal .controls button')) return;
+      rest = setTimeout(function () { root.classList.remove('stage-chrome-awake'); }, 2000);
+    }, true);
+  }
+
   // Capture F before Reveal's own handler, which would fullscreen only the
   // inner content frame in embedded mode.
   window.addEventListener('keydown', function (event) {

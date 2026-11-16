@@ -789,3 +789,23 @@ $thumb-width: clamp(140px, 17vw, 260px);
 .reveal pre.sourceCode code {
   padding: 0.4em 0.7em;
 }
+
+// `stage-chrome: auto-hide` (see deck-stage-open.html).
+.stage-chrome-auto-hide {
+  .deck-stage > .deck-launchers,
+  .reveal .controls {
+    transition: opacity 0.3s;
+  }
+
+  &:not(.stage-chrome-awake) {
+    .deck-stage > .deck-launchers,
+    .reveal .controls {
+      opacity: 0 !important;
+    }
+
+    .deck-stage > .deck-launchers,
+    .reveal .controls button {
+      pointer-events: none !important;
+    }
+  }
+}
