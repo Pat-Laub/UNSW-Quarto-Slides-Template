@@ -8,6 +8,8 @@
 $body-bg: #ffffff !default;
 $link-color: #d94827 !default;
 $mainColor: #383D3D !default;
+// Quarto derives the slide number's grey from this.
+$body-color: #000 !default;
 $headingColor: #383D3D !default;
 
 // Normal-weight headings like both UNSW courses (Quarto's default is 600).
