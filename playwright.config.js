@@ -1,4 +1,13 @@
 const { defineConfig, devices } = require('@playwright/test');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+// Endpoint security blocks ~/Library/Application Support/Firefox, and Firefox
+// before 153.6 hangs headless when it cannot read profiles.ini there.
+const firefoxHome = path.join(os.tmpdir(), 'playwright-firefox-home');
+fs.mkdirSync(firefoxHome, { recursive: true });
+const firefoxEnv = { ...process.env, CFFIXED_USER_HOME: firefoxHome };
 
 module.exports = defineConfig({
   testDir: './tests',
@@ -14,7 +23,7 @@ module.exports = defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'], launchOptions: { env: firefoxEnv } } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } }
   ],
   webServer: [
