@@ -514,7 +514,7 @@ x^n + y^n = z^n
 <div class="columns">
 <div class="column" style="width:45%;">
 <p>It is quite easy to show code and their results. E.g. here is some Python code:</p>
-<div id="f9e91288" class="cell" data-execution_count="1">
+<div id="8287c049" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="" aria-label="1"></a>[x<span class="op">**</span><span class="dv">2</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>[0, 1, 4, 9, 16]</code></pre>
@@ -522,7 +522,7 @@ x^n + y^n = z^n
 </div>
 <p>Also you can hide the code and just show the generated output/figure.</p>
 </div><div class="column" style="width:55%;">
-<div id="5f47ce3d" class="cell" data-execution_count="2">
+<div id="bc34b755" class="cell" data-execution_count="2">
 <div class="cell-output cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure>
@@ -1159,10 +1159,13 @@ x^n + y^n = z^n
     // The pictures are of the slide with its fragments revealed and without any
     // ink drawn on it since: a map of the deck, not a mirror of its current state.
     //
-    // Where there is no `.thumbs` directory -- a deck built without the step, and
-    // every fixture deck in this repo's own tests -- nothing is installed and the
+    // Only a deck that sets `deck-thumbs: true` looks for the pictures at all; a
+    // small deck is fine with reveal's own overview. Where there is no `.thumbs`
+    // directory -- a deck built without the step -- nothing is installed and the
     // grid button falls through to `Reveal.toggleOverview()` exactly as before.
     (function () {
+      var on = document.querySelector('meta[name="deck-thumbs"]');
+      if (!on || on.content !== 'true') return;
       var stage = document.querySelector('[data-deck-stage]');
       if (!stage) return;
       var shell = stage.parentElement;
