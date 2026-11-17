@@ -8,8 +8,11 @@
 $body-bg: #ffffff !default;
 $link-color: #d94827 !default;
 $mainColor: #383D3D !default;
-// Quarto derives the slide number's grey from this.
+// What this look used to inherit from reveal's serif base theme.
 $body-color: #000 !default;
+$selection-bg: #26351c !default;
+$overlayElementBgColor: 0, 0, 0 !default;
+$overlayElementFgColor: 240, 240, 240 !default;
 $headingColor: #383D3D !default;
 
 // Normal-weight headings like both UNSW courses (Quarto's default is 600).
@@ -36,6 +39,10 @@ $stage-artwork-image: url("#{$unsw-polygon}") !default;
 $stage-rail-background: $unsw-yellow !default;
 
 /*-- scss:rules --*/
+
+.reveal a {
+  line-height: 1.3em;
+}
 
 // Booktabs rules, matching the Typst tutorials: heavy top and bottom, a light
 // rule under the header, nothing between body rows. Reveal's default ruled every
