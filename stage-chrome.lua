@@ -1,9 +1,9 @@
 -- Quarto does not pass unknown format options through to Reveal's config, so
--- `stage-chrome: auto-hide` and `progress-pop: true` reach the stage's scripts
--- as <meta> tags.
+-- `stage-chrome: auto-hide`, `progress-pop: true` and `deck-thumbs: true` reach
+-- the stage's scripts as <meta> tags.
 function Meta(meta)
   local changed = false
-  for _, key in ipairs({ 'stage-chrome', 'progress-pop' }) do
+  for _, key in ipairs({ 'stage-chrome', 'progress-pop', 'deck-thumbs' }) do
     local value = meta[key]
     if value ~= nil then
       local tag = pandoc.RawBlock('html',

@@ -21,10 +21,13 @@
 // The pictures are of the slide with its fragments revealed and without any
 // ink drawn on it since: a map of the deck, not a mirror of its current state.
 //
-// Where there is no `.thumbs` directory -- a deck built without the step, and
-// every fixture deck in this repo's own tests -- nothing is installed and the
+// Only a deck that sets `deck-thumbs: true` looks for the pictures at all; a
+// small deck is fine with reveal's own overview. Where there is no `.thumbs`
+// directory -- a deck built without the step -- nothing is installed and the
 // grid button falls through to `Reveal.toggleOverview()` exactly as before.
 (function () {
+  var on = document.querySelector('meta[name="deck-thumbs"]');
+  if (!on || on.content !== 'true') return;
   var stage = document.querySelector('[data-deck-stage]');
   if (!stage) return;
   var shell = stage.parentElement;
