@@ -19,11 +19,8 @@ This downloads just the files you need to start a new set of slides: `template.q
 
 ## PDF slides
 
-```bash
-python scripts/print_slides_pdfs.py
-```
-
-turns `template.html` into `template.pdf`. It loads the deck in headless Chrome with reveal.js's own `?print-pdf` view, so the text and figures stay vector rather than being screenshotted, and the presentation controls stay out of the PDF.
+Open `template.html` in Chrome and press <kbd>⌘P</kbd>/<kbd>Ctrl+P</kbd>, then choose "Save as PDF".
+The deck prints its own print layout, one full slide per page, so the text and figures stay vector and the presentation controls stay out of the PDF.
 
 ## Drawing on the slides
 

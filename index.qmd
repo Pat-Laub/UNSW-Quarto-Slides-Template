@@ -30,7 +30,7 @@ Reveal.js slides can be progressed by pressing the spacebar key, or by clicking 
 :::
 
 ::: {.callout-warning}
-Quarto creates HTML slides, and converting these to PDF is slightly clunky.
-Running `python scripts/print_slides_pdfs.py` loads the deck in headless Chrome using reveal.js's own `?print-pdf` view to create [PDF slides](template.pdf).
+Quarto creates HTML slides.
+To make [PDF slides](template.pdf), open the deck in Chrome, press <kbd>⌘P</kbd>/<kbd>Ctrl+P</kbd> and choose "Save as PDF".
 All interactivity in the HTML is discarded, but the text and figures stay vector rather than being screenshotted.
 :::
