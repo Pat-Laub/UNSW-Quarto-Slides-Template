@@ -35,10 +35,13 @@ $stage-artwork-image: none !default;
 $stage-rail-background: transparent !default;
 
 $body-bg: #ffffff !default;
-$mainColor: #383D3D !default;
+$mainColor: #222222 !default;
 // Only the outline on the present card in overview. Defaults to the body colour
 // so the stage carries no accent of its own; a theme layer supplies one.
 $link-color: $mainColor !default;
+// Behind the overview grid and the thumbnail panel, so the gaps read.
+$stage-overview-bg: #e8e9e9 !default;
+$progress-height: 9px !default;
 
 /*-- scss:rules --*/
 
@@ -140,7 +143,7 @@ html:not(.print-pdf) .reveal:not(.overview):not(.reveal-scroll) .slides section:
   left: 0 !important;
   bottom: 0 !important;
   width: #{$deck-width} !important;
-  height: 9px;
+  height: $progress-height;
 }
 .reveal .slide-number {
   position: fixed !important;
@@ -221,7 +224,7 @@ $ov-card-top: -$content-top;
 // Cards sit on a tint so the gap between them is visible; the stage's own
 // full-height rail and title artwork would span the whole grid, so they go.
 .deck-stage.deck-stage-overview {
-  background: #e8e9e9;
+  background: $stage-overview-bg;
 }
 .deck-stage.deck-stage-overview::after,
 .deck-stage.deck-stage-overview::before {
@@ -432,17 +435,6 @@ html.reveal-print {
   right: #{$rail-width + 24px + $launcher-icon} !important;
 }
 
-#title-slide {
-  .subtitle {
-    margin-top: 1.5rem;
-    margin-bottom: 0;
-  }
-}
-
-.reveal h1 {
-  text-align: center;
-}
-
 // Quarto's footer CSS is written in browser pixels for a deck a third of this
 // one's size, so an unstyled `::: footer` lands at a third of the intended
 // size and hugs the bottom edge. Both values are that CSS scaled to the
@@ -461,45 +453,11 @@ html.reveal-print {
   font-size: 54px;
 }
 
-// A semantic slide footnote is page chrome, like Beamer's footnote area, not
-// part of the normal-flow content. Quarto clones this footer outside `.slide`
-// in live view; the source copy remains hidden by Quarto's support stylesheet.
-.reveal .footer.footnote-footer {
-  left: 384px;
-  bottom: 42px;
-  width: 2970px;
-  text-align: left;
-  font-size: 54px;
-}
-
-.reveal .footer.footnote-footer::before {
-  content: "";
-  display: block;
-  width: 1110px;
-  margin-bottom: 18px;
-  border-top: 3px solid currentColor;
-}
-
 // Quarto's live footer clone is viewport-fixed, which would otherwise span the
 // whole overview. In overview, hide that clone and reveal each slide's own
 // source footer inside its 16:9 preview cell instead.
 .reveal.overview > .footer {
   display: none !important;
-}
-
-.reveal.overview .slides section:not(.stack) > .footer.footnote-footer {
-  display: block !important;
-  position: absolute;
-  left: 48px;
-  bottom: 24px;
-  width: 2700px;
-  font-size: 42px;
-  text-align: left;
-}
-
-.reveal.overview .slides section:not(.stack) > .footer.footnote-footer::before {
-  width: 840px;
-  margin-bottom: 12px;
 }
 
 // The same swap for a plain footer, which is centred on the card rather than
@@ -688,7 +646,7 @@ $thumb-width: clamp(140px, 17vw, 260px);
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   container-type: size;
-  background: #e8e9e9;
+  background: $stage-overview-bg;
 }
 
 .deck-thumbs[hidden] {

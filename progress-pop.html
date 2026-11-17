@@ -1,4 +1,4 @@
-<!-- The slide number rides above the progress bar's leading edge for a moment after each slide change. -->
+<!-- `progress-pop: true`: the slide number rides above the progress bar's leading edge for a moment after each slide change. -->
 <style>
 .reveal .progress .progress-pop {
   position: absolute; bottom: 100%; margin-bottom: 12px; translate: -50% 0;
@@ -10,7 +10,8 @@
 <script>
 window.addEventListener('load', () => {
   const bar = document.querySelector('.reveal .progress');
-  if (!window.Reveal || !bar || Reveal.isPrintView()) return;
+  const on = document.querySelector('meta[name="progress-pop"]');
+  if (!on || on.content !== 'true' || !window.Reveal || !bar || Reveal.isPrintView()) return;
   const pop = bar.appendChild(document.createElement('div'));
   pop.className = 'progress-pop';
   const fill = bar.querySelector('span');
