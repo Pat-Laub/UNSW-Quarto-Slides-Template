@@ -28,6 +28,9 @@ format:
       - _extensions/Pat-Laub/annotate/annotate.scss
 ```
 
+It is look only: course content classes (Beamer compatibility, solutions,
+theorem environments) belong to the course that uses them.
+
 Everything is a `!default` where a course might reasonably differ, so a course
 can set its own fonts or accent above this layer without editing it.
 
